@@ -60,7 +60,13 @@ class AdminPanelProvider extends PanelProvider
                 HTML)
             )
             ->login()
-            ->registration(Register::class)
+            // Registration is provided by the optional tallcms/filament-registration
+            // plugin. Only wire the captcha-aware Register page when that package is
+            // installed; a bare skeleton ships with no admin sign-up.
+            ->when(
+                class_exists(Register::class),
+                fn (Panel $panel) => $panel->registration(Register::class),
+            )
             ->passwordReset()
             ->emailVerification(isRequired: fn () => (bool) config('registration.email_verification.enabled'))
             ->emailChangeVerification(fn () => (bool) config('registration.email_verification.enabled'))
@@ -97,12 +103,13 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins(array_filter([
                 TallCmsPlugin::make(),
-                // Registration bridge ships as a local plugin under /plugins/tallcms/registration/.
-                // Guard so fresh checkouts (CI release builds, plugin-mode users) without the
-                // plugin installed don't crash on a missing class reference. settingsPage()
-                // swaps in the host-defined Shield-gated subclass so the panel page enforces
-                // View:RegistrationSettings instead of being open to anyone with admin access.
-                class_exists(TallcmsRegistrationBridge::class)
+                // Registration bridge ships as a local plugin under /plugins/tallcms/registration/,
+                // and itself depends on the optional tallcms/filament-registration package. Wire it
+                // only when BOTH the bridge plugin and the package are present, so that neither a
+                // fresh skeleton (no plugin) nor a bridge-installed-without-the-package state crashes
+                // the panel. settingsPage() swaps in the host-defined Shield-gated subclass so the
+                // page enforces View:RegistrationSettings instead of being open to any admin.
+                class_exists(TallcmsRegistrationBridge::class) && class_exists(Register::class)
                     ? TallcmsRegistrationBridge::make()->settingsPage(\App\Filament\Pages\RegistrationSettings::class)
                     : null,
             ]))

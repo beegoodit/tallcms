@@ -42,13 +42,6 @@ Full guide: [Installation](https://github.com/tallcms/tallcms/blob/main/docs/gs-
 - MySQL 8 / MariaDB 10.3 / SQLite
 - Node 20+ (for building assets)
 
-> **Laravel 13:** the core CMS (`tallcms/cms`) supports Laravel 13. The
-> standalone skeleton currently resolves on Laravel 12 until
-> [`tallcms/filament-registration`](https://packagist.org/packages/tallcms/filament-registration)
-> ships a Laravel 13–compatible release, after which `composer update` picks
-> up Laravel 13 automatically. Tracking in
-> [#61](https://github.com/tallcms/tallcms/issues/61).
-
 ## Documentation
 
 Full documentation lives in the [docs/](docs/) directory. Highlights:
