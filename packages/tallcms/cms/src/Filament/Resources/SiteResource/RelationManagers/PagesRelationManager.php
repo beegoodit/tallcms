@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace TallCms\Cms\Filament\Resources\SiteResource\RelationManagers;
 
 use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use TallCms\Cms\Enums\ContentStatus;
 use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
+use TallCms\Cms\Filament\Tables\PublishingBulkActions;
+use TallCms\Cms\Filament\Tables\PublishingTable;
 
 class PagesRelationManager extends RelationManager
 {
@@ -38,10 +40,7 @@ class PagesRelationManager extends RelationManager
                     ->limit(30)
                     ->color('gray'),
 
-                TextColumn::make('status')->label(__('tallcms::fields.status'))
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => ContentStatus::from($state)->getLabel())
-                    ->color(fn (string $state): string => ContentStatus::from($state)->getColor()),
+                PublishingTable::statusColumn(),
 
                 IconColumn::make('is_homepage')
                     ->label(__('tallcms::fields.home'))
@@ -52,6 +51,9 @@ class PagesRelationManager extends RelationManager
                     ->dateTime()
                     ->since()
                     ->sortable(),
+            ])
+            ->filters([
+                PublishingTable::statusFilter(),
             ])
             ->defaultSort('sort_order')
             ->headerActions([
@@ -78,6 +80,11 @@ class PagesRelationManager extends RelationManager
                         'record' => $record,
                         'from_site' => $this->getOwnerRecord()->id,
                     ])),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    ...PublishingBulkActions::make(),
+                ]),
             ]);
     }
 }

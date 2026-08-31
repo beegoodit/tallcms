@@ -9,11 +9,11 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\QueryException;
-use TallCms\Cms\Enums\ContentStatus;
+use TallCms\Cms\Filament\Tables\PublishingBulkActions;
+use TallCms\Cms\Filament\Tables\PublishingTable;
 
 class CmsPagesTable
 {
@@ -36,11 +36,7 @@ class CmsPagesTable
                     ->copyable()
                     ->limit(30),
 
-                TextColumn::make('status')->label(__('tallcms::fields.status'))
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => ContentStatus::from($state)->getLabel())
-                    ->color(fn (string $state): string => ContentStatus::from($state)->getColor())
-                    ->icon(fn (string $state): string => ContentStatus::from($state)->getIcon()),
+                PublishingTable::statusColumn(),
 
                 TextColumn::make('parent.title')
                     ->label(__('tallcms::fields.parent'))
@@ -66,12 +62,7 @@ class CmsPagesTable
                 ...static::getSiteColumn(),
             ])
             ->filters([
-                SelectFilter::make('status')
-                    ->options([
-                        ContentStatus::Draft->value => ContentStatus::Draft->getLabel(),
-                        ContentStatus::Pending->value => ContentStatus::Pending->getLabel(),
-                        ContentStatus::Published->value => ContentStatus::Published->getLabel(),
-                    ]),
+                PublishingTable::statusFilter(),
 
                 TrashedFilter::make(),
             ])
@@ -80,6 +71,7 @@ class CmsPagesTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    ...PublishingBulkActions::make(),
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
