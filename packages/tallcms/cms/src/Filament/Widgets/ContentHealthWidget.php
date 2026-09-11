@@ -5,6 +5,7 @@ namespace TallCms\Cms\Filament\Widgets;
 use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Attributes\On;
@@ -49,11 +50,10 @@ class ContentHealthWidget extends BaseWidget
                 ->count();
         }
 
-        // Posts with missing meta description
+        // Posts with missing meta description (JSON translatable column)
         $missingMeta = (clone $postQuery)
             ->where(function ($q) {
-                $q->whereNull('meta_description')
-                    ->orWhere('meta_description', '');
+                $this->constrainEmptyJsonColumn($q, 'meta_description');
             })
             ->count();
 
@@ -82,6 +82,27 @@ class ContentHealthWidget extends BaseWidget
         ];
     }
 
+    /**
+     * Match null / empty JSON text on MariaDB, MySQL, SQLite, and PostgreSQL.
+     *
+     * Postgres has no `json = unknown` operator, so `orWhere($column, '')` throws.
+     */
+    protected function constrainEmptyJsonColumn(Builder $query, string $column): void
+    {
+        $query->whereNull($column);
+
+        if ($query->getConnection()->getDriverName() === 'pgsql') {
+            $wrapped = $query->getGrammar()->wrap($column);
+            $query->orWhereRaw("{$wrapped}::text IN ('', 'null', '\"\"', '{}', '[]')");
+
+            return;
+        }
+
+        $query->orWhere($column, '')
+            ->orWhere($column, '{}')
+            ->orWhere($column, '[]');
+    }
+
     protected function getColumns(): int
     {
         return 3;
@@ -97,4 +118,3 @@ class ContentHealthWidget extends BaseWidget
             : __('tallcms::widgets.content_health.heading');
     }
 }
-
