@@ -9252,11 +9252,11 @@
         },
         {
             "name": "tallcms/cms",
-            "version": "4.8.0",
+            "version": "4.8.1",
             "dist": {
                 "type": "path",
                 "url": "./packages/tallcms/cms",
-                "reference": "2e9edb46cf45e9102af3ae6d108d230307e535f5"
+                "reference": "43121c78d45961c528e39dfb243895fc911c8433"
             },
             "require": {
                 "bezhansalleh/filament-shield": "^4.0",
