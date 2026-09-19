@@ -155,6 +155,43 @@ class SplitBlockTest extends TestCase
         $this->assertStringContainsString('lg:grid-cols-3', $html);
     }
 
+    public function test_two_cell_equal_normalizes_to_50_50(): void
+    {
+        $this->assertSame('50/50', SplitBlock::normalizePreset('equal', 2));
+
+        $layout = SplitBlock::resolveLayout('equal', 2);
+        $html = $this->renderPreset('equal', $this->textCells(2));
+
+        $this->assertSame('50/50', $layout['preset']);
+        $this->assertStringContainsString('data-split-layout="50/50"', $html);
+        $this->assertStringContainsString('lg:grid-cols-2', $html);
+        $this->assertArrayHasKey('50/50', SplitBlock::presetOptions(2));
+        $this->assertArrayNotHasKey('equal', SplitBlock::presetOptions(2));
+    }
+
+    public function test_reducing_three_equal_cells_to_two_normalizes_preset_to_50_50(): void
+    {
+        $packed = SplitBlock::packCells([
+            'cell_count' => 2,
+            'preset' => 'equal',
+            'cell_1_type' => 'rich_text',
+            'cell_1_body' => '<p>One</p>',
+            'cell_2_type' => 'rich_text',
+            'cell_2_body' => '<p>Two</p>',
+        ]);
+
+        $this->assertSame('50/50', $packed['preset']);
+        $this->assertCount(2, $packed['cells']);
+
+        $unpacked = SplitBlock::unpackCells([
+            'preset' => 'equal',
+            'cells' => $this->textCells(2),
+        ]);
+
+        $this->assertSame(2, $unpacked['cell_count']);
+        $this->assertSame('50/50', $unpacked['preset']);
+    }
+
     public function test_sidebar_start_with_two_cells(): void
     {
         $html = $this->renderPreset('sidebar-start');
@@ -308,6 +345,21 @@ class SplitBlockTest extends TestCase
 
         $this->assertStringContainsString('flex-col-reverse', $layout['container']);
         $this->assertStringContainsString('flex-col-reverse', $html);
+        $this->assertStringContainsString('w-full', $layout['cells'][0]);
+        $this->assertStringContainsString('w-full', $layout['cells'][1]);
+        $this->assertStringContainsString('min-w-0 w-full', $html);
+    }
+
+    public function test_ratio_cells_keep_full_width_when_reversed(): void
+    {
+        $layout = SplitBlock::resolveLayout('33/67', 2, 'reverse', 'center');
+
+        $this->assertStringContainsString('flex-col-reverse', $layout['container']);
+        $this->assertStringContainsString('items-center', $layout['container']);
+        $this->assertStringContainsString('min-w-0 w-full', $layout['cells'][0]);
+        $this->assertStringContainsString('lg:col-span-1', $layout['cells'][0]);
+        $this->assertStringContainsString('min-w-0 w-full', $layout['cells'][1]);
+        $this->assertStringContainsString('lg:col-span-2', $layout['cells'][1]);
     }
 
     public function test_vertical_center_uses_items_center(): void

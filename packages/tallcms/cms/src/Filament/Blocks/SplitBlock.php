@@ -327,6 +327,7 @@ class SplitBlock extends RichContentCustomBlock
         $flat = $config;
         unset($flat['cells']);
         $flat['cell_count'] = $count;
+        $flat['preset'] = static::normalizePreset((string) ($flat['preset'] ?? '50/50'), $count);
 
         for ($index = 1; $index <= 4; $index++) {
             $cell = $cells[$index - 1] ?? [];
@@ -450,7 +451,7 @@ class SplitBlock extends RichContentCustomBlock
                 default => '',
             };
 
-            $cells[] = trim('min-w-0 '.$span);
+            $cells[] = trim('min-w-0 w-full '.$span);
         }
 
         return [
@@ -464,13 +465,17 @@ class SplitBlock extends RichContentCustomBlock
     {
         $count = max(2, min(4, $cellCount));
 
+        if ($count === 2 && $preset === 'equal') {
+            return '50/50';
+        }
+
         if ($count > 2 && in_array($preset, self::twoCellOnlyPresets(), true)) {
             return 'equal';
         }
 
         $allowed = $count > 2
             ? ['equal', 'sidebar-start', 'sidebar-end']
-            : [...self::twoCellOnlyPresets(), 'sidebar-start', 'sidebar-end', 'equal'];
+            : [...self::twoCellOnlyPresets(), 'sidebar-start', 'sidebar-end'];
 
         if (! in_array($preset, $allowed, true)) {
             return $count > 2 ? 'equal' : '50/50';
