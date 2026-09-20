@@ -4,26 +4,33 @@ on:
   release:
     types: [published]
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Preserve isolated signing helper
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-signing-helper-${{ github.event.release.tag_name }}
+          path: .github/scripts/sign-release.php
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.4'
           extensions: mbstring, xml, ctype, json, bcmath, curl, zip, gd, sqlite3, sodium
           coverage: none
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -33,7 +40,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
@@ -193,23 +200,56 @@ jobs:
           jq --arg hash "$ZIP_HASH" '.zip_sha256 = $hash' checksums.json > checksums.tmp && mv checksums.tmp checksums.json
           echo "Manifest complete."
 
+      - name: Stage unsigned release assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unsigned-release-${{ github.event.release.tag_name }}
+          path: |
+            tallcms-${{ steps.version.outputs.version }}.zip
+            checksums.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Setup PHP with sodium
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          extensions: sodium
+          coverage: none
+
+      - name: Download isolated signing helper
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-signing-helper-${{ github.event.release.tag_name }}
+          path: .github/scripts
+
+      - name: Download unsigned release assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: unsigned-release-${{ github.event.release.tag_name }}
+          path: release-assets
+
       - name: Sign checksums with Ed25519
-        run: |
-          if [ -z "$ED25519_PRIVATE_KEY" ]; then
-            echo "::error::ED25519_PRIVATE_KEY secret is not set. Release signing is required."
-            exit 1
-          fi
-          cd release
-          php artisan tallcms:sign-release ../checksums.json
+        run: php .github/scripts/sign-release.php release-assets/checksums.json
         env:
           ED25519_PRIVATE_KEY: ${{ secrets.ED25519_PRIVATE_KEY }}
 
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            tallcms-${{ steps.version.outputs.version }}.zip
-            checksums.json
-            checksums.json.sig
+      - name: Upload signed release assets
+        shell: bash
+        run: |
+          gh release upload "$TAG_NAME" \
+            "release-assets/tallcms-$TAG_NAME.zip" \
+            "release-assets/checksums.json" \
+            "release-assets/checksums.json.sig" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}

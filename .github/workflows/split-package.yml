@@ -19,12 +19,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
       - name: Split packages/tallcms/cms to tallcms/cms
-        uses: danharrin/monorepo-split-github-action@v2.3.0
+        uses: danharrin/monorepo-split-github-action@ac9845270ef47266435b4f124b133a323619e738 # v2.3.0
         env:
           GITHUB_TOKEN: ${{ secrets.PACKAGE_SPLIT_TOKEN }}
         with:
