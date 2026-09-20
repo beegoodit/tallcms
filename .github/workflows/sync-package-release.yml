@@ -17,12 +17,18 @@ jobs:
         run: sleep 30
 
       - name: Create release on package repo
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: tallcms/cms
-          tag_name: ${{ github.event.release.tag_name }}
-          name: ${{ github.event.release.name }}
-          body: ${{ github.event.release.body }}
-          draft: false
-          prerelease: ${{ github.event.release.prerelease }}
-          token: ${{ secrets.PACKAGE_SPLIT_TOKEN }}
+        shell: bash
+        run: |
+          args=(release create "$TAG_NAME" --repo tallcms/cms --verify-tag --title "$RELEASE_NAME" --notes "$RELEASE_BODY")
+
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          fi
+
+          gh "${args[@]}"
+        env:
+          GH_TOKEN: ${{ secrets.PACKAGE_SPLIT_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
