@@ -65,7 +65,7 @@ Browse the full catalog at [tallcms.com/marketplace](https://tallcms.com/marketp
 
 🐞 Bug? [Open an issue](https://github.com/tallcms/tallcms/issues/new).
 🤔 Question or feature request? [Start a discussion](https://github.com/tallcms/tallcms/discussions).
-🔐 Security issue? Email hello@tallcms.com. Do not file publicly.
+🔐 Security issue? Follow our [security policy](SECURITY.md) to report it privately.
 
 ## License
 
