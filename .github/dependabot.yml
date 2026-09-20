@@ -18,7 +18,9 @@ updates:
     groups:
       composer-monorepo:
         group-by: dependency-name
-    open-pull-requests-limit: 10
+    # Routine version bumps are handled during planned dependency maintenance.
+    # Security update PRs are not subject to this limit.
+    open-pull-requests-limit: 0
     commit-message:
       prefix: deps
       include: scope
@@ -42,7 +44,9 @@ updates:
     groups:
       npm-monorepo:
         group-by: dependency-name
-    open-pull-requests-limit: 10
+    # Routine version bumps are handled during planned dependency maintenance.
+    # Security update PRs are not subject to this limit.
+    open-pull-requests-limit: 0
     commit-message:
       prefix: deps
       include: scope
@@ -63,7 +67,9 @@ updates:
         update-types:
           - minor
           - patch
-    open-pull-requests-limit: 5
+    # Routine version bumps are handled during planned dependency maintenance.
+    # Security update PRs are not subject to this limit.
+    open-pull-requests-limit: 0
     commit-message:
       prefix: ci
       include: scope
