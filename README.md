@@ -3,6 +3,7 @@
 [![Packagist Version](https://img.shields.io/packagist/v/tallcms/tallcms)](https://packagist.org/packages/tallcms/tallcms)
 [![Packagist Downloads](https://img.shields.io/packagist/dt/tallcms/tallcms)](https://packagist.org/packages/tallcms/tallcms)
 [![License](https://img.shields.io/packagist/l/tallcms/tallcms)](https://opensource.org/licenses/MIT)
+[![Plumb maintenance score](https://plumbphp.dev/badges/tallcms/tallcms/maintenance.svg)](https://plumbphp.dev/tallcms/tallcms)
 
 A modern Content Management System built on the **TALL stack** (Tailwind CSS, Alpine.js, Laravel, Livewire) with a Filament admin panel and a daisyUI-powered block system.
 
