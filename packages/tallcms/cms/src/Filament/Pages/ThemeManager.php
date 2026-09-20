@@ -139,17 +139,19 @@ class ThemeManager extends Page implements HasForms
      *   sees it. Pre-existing overrides must be overwritten, not shadowed by
      *   a global row that get() never reaches.
      * - Multisite "All Sites" (resolver bound, no site selected): setGlobal().
+     * Description is forwarded on global/standalone writes so updateOrCreate
+     * does not wipe the existing site_settings.description column.
      */
-    protected function writeScopedSetting(string $key, mixed $value, string $type, string $group): void
+    protected function writeScopedSetting(string $key, mixed $value, string $type, string $group, ?string $description = null): void
     {
         $context = $this->getMultisiteContext();
 
         if ($context) {
             $this->getSiteSettingsService()->setForSite((int) $context->id, $key, $value, $type);
         } elseif ($this->multisiteResolverIsBound()) {
-            SiteSetting::setGlobal($key, $value, $type, $group);
+            SiteSetting::setGlobal($key, $value, $type, $group, $description);
         } else {
-            SiteSetting::set($key, $value, $type, $group);
+            SiteSetting::set($key, $value, $type, $group, $description);
         }
 
         SiteSetting::clearCache();
@@ -637,7 +639,7 @@ class ThemeManager extends Page implements HasForms
                 }
             }
 
-            $this->writeScopedSetting('theme_default_preset', '', 'text', 'theme');
+            $this->writeScopedSetting('theme_default_preset', '', 'text', 'theme', 'Default daisyUI preset for the active theme');
 
             Notification::make()
                 ->title(__('tallcms::ui.t_site_theme_updated'))
@@ -648,7 +650,7 @@ class ThemeManager extends Page implements HasForms
             $this->clearThemeCache();
         } elseif ($this->getThemeManager()->activateWithRollback($slug)) {
             // Global: write to config/theme.php with rollback support
-            $this->writeScopedSetting('theme_default_preset', '', 'text', 'theme');
+            $this->writeScopedSetting('theme_default_preset', '', 'text', 'theme', 'Default daisyUI preset for the active theme');
 
             Notification::make()
                 ->title(__('tallcms::ui.t_theme_activated'))
@@ -775,7 +777,7 @@ class ThemeManager extends Page implements HasForms
             return;
         }
 
-        $this->writeScopedSetting('theme_default_preset', $preset, 'text', 'theme');
+        $this->writeScopedSetting('theme_default_preset', $preset, 'text', 'theme', 'Default daisyUI preset for the active theme');
 
         Notification::make()
             ->title(__('tallcms::ui.t_default_preset_updated'))

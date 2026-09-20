@@ -132,6 +132,49 @@ class ThemeManagerDisplayOptionsScopingTest extends TestCase
         );
     }
 
+    public function test_global_write_forwards_description_instead_of_clearing_it(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+        $this->actingAs($admin);
+
+        DB::table('tallcms_site_settings')->insert([
+            'key' => 'theme_default_preset',
+            'value' => 'light',
+            'type' => 'text',
+            'group' => 'theme',
+            'description' => 'Default daisyUI preset for the active theme',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $hostSiteId = $this->insertSite('TallCMS', '127.0.0.1.nip.io');
+        $this->bindHostnameResolver($hostSiteId);
+        request()->attributes->set('tallcms.admin_context', false);
+        session()->forget('multisite_admin_site_id');
+
+        $page = new ThemeManager;
+        $write = new \ReflectionMethod($page, 'writeScopedSetting');
+        $write->setAccessible(true);
+        $write->invoke(
+            $page,
+            'theme_default_preset',
+            'dark',
+            'text',
+            'theme',
+            'Default daisyUI preset for the active theme',
+        );
+
+        $row = DB::table('tallcms_site_settings')->where('key', 'theme_default_preset')->first();
+
+        $this->assertSame('dark', $row->value);
+        $this->assertSame(
+            'Default daisyUI preset for the active theme',
+            $row->description,
+            'Global writes must keep the setting description; setGlobal(null) would wipe it.',
+        );
+    }
+
     public function test_standalone_without_resolver_overwrites_preexisting_default_site_override(): void
     {
         $this->unbindMultisiteResolver();
