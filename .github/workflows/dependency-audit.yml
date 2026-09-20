@@ -1,0 +1,80 @@
+name: Dependency Audit
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - '**/composer.json'
+      - '**/composer.lock'
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '.github/dependabot.yml'
+      - '.github/workflows/dependency-audit.yml'
+  pull_request:
+    paths:
+      - '**/composer.json'
+      - '**/composer.lock'
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '.github/dependabot.yml'
+      - '.github/workflows/dependency-audit.yml'
+  schedule:
+    - cron: '17 1 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  composer:
+    name: Composer advisory audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          extensions: sodium
+          coverage: none
+
+      - name: Audit locked Composer dependencies
+        run: composer audit --locked --abandoned=fail
+
+  npm:
+    name: npm advisory audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Audit tracked npm lockfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r lockfile; do
+            directory=$(dirname "$lockfile")
+            echo "::group::npm audit ($directory)"
+            (cd "$directory" && npm audit --audit-level=high)
+            echo "::endgroup::"
+          done < <(git ls-files '*package-lock.json')
+
+      - name: Audit unlocked core package manifest
+        working-directory: packages/tallcms/cms
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm audit --audit-level=high

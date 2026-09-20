@@ -1,0 +1,69 @@
+version: 2
+
+updates:
+  - package-ecosystem: composer
+    directories:
+      - /
+      - /packages/tallcms/cms
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Singapore
+    cooldown:
+      default-days: 3
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      composer-monorepo:
+        group-by: dependency-name
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
+      include: scope
+
+  - package-ecosystem: npm
+    directories:
+      - /
+      - /packages/tallcms/cms
+      - /themes/*
+      - /packages/tallcms/cms/resources/themes/*
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:15'
+      timezone: Asia/Singapore
+    cooldown:
+      default-days: 3
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      npm-monorepo:
+        group-by: dependency-name
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:30'
+      timezone: Asia/Singapore
+    cooldown:
+      default-days: 3
+    groups:
+      github-actions-minor-patch:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci
+      include: scope
