@@ -58,7 +58,11 @@ jobs:
         working-directory: packages/tallcms/cms
         run: |
           composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
-          composer install --prefer-dist --no-interaction --no-progress
+          composer update --with-all-dependencies --prefer-dist --no-interaction --no-progress
+
+      - name: Audit Composer dependencies
+        working-directory: packages/tallcms/cms
+        run: composer audit --locked
 
       - name: Run tests
         working-directory: packages/tallcms/cms
