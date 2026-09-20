@@ -132,6 +132,47 @@ class ThemeManagerDisplayOptionsScopingTest extends TestCase
         );
     }
 
+    public function test_standalone_without_resolver_overwrites_preexisting_default_site_override(): void
+    {
+        $this->unbindMultisiteResolver();
+        SiteSetting::forgetMemoizedDefaultSiteId();
+
+        $defaultSiteId = DB::table('tallcms_sites')->where('is_default', true)->value('id')
+            ?? DB::table('tallcms_sites')->orderBy('id')->value('id');
+
+        $this->assertNotNull($defaultSiteId, 'Standalone installs always have a default site.');
+
+        DB::table('tallcms_site_setting_overrides')->insert([
+            'site_id' => $defaultSiteId,
+            'key' => 'show_search',
+            'value' => '1',
+            'type' => 'boolean',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Cache::flush();
+        SiteSetting::forgetMemoizedDefaultSiteId();
+
+        $this->assertTrue(
+            (bool) SiteSetting::get('show_search'),
+            'Precondition: frontend get() must see the pre-existing default-site override.',
+        );
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+        $this->actingAs($admin);
+
+        $page = new ThemeManager;
+        $page->updatedShowSearch(false);
+
+        $this->assertFalse(
+            (bool) SiteSetting::get('show_search'),
+            'Standalone Theme Manager writes must overwrite the default-site override so frontend get() agrees.',
+        );
+        $this->assertSame('0', $this->overrideValue((int) $defaultSiteId, 'show_search'));
+    }
+
     protected function insertSite(string $name, string $domain): int
     {
         return (int) DB::table('tallcms_sites')->insertGetId([
@@ -176,5 +217,30 @@ class ThemeManagerDisplayOptionsScopingTest extends TestCase
 
             public function reset(): void {}
         });
+    }
+
+    /**
+     * Simulate a standalone install: Multisite's resolver is not bound, so
+     * SiteSetting::resolveCurrentSiteId() falls back to the default site.
+     */
+    protected function unbindMultisiteResolver(): void
+    {
+        unset($this->app['tallcms.multisite.resolver']);
+
+        $refl = new \ReflectionClass($this->app);
+
+        $aliasesProp = $refl->getProperty('aliases');
+        $aliasesProp->setAccessible(true);
+        $aliases = $aliasesProp->getValue($this->app);
+        unset($aliases['tallcms.multisite.resolver']);
+        $aliasesProp->setValue($this->app, $aliases);
+
+        $abstractAliasesProp = $refl->getProperty('abstractAliases');
+        $abstractAliasesProp->setAccessible(true);
+        $abstractAliases = $abstractAliasesProp->getValue($this->app);
+        foreach ($abstractAliases as $abstract => $list) {
+            $abstractAliases[$abstract] = array_values(array_diff($list, ['tallcms.multisite.resolver']));
+        }
+        $abstractAliasesProp->setValue($this->app, $abstractAliases);
     }
 }

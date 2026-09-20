@@ -127,11 +127,18 @@ class ThemeManager extends Page implements HasForms
 
     /**
      * Persist a Theme Manager setting to the site shown in the page dropdown
-     * (getMultisiteContext), not ambient SiteSetting::set().
+     * (getMultisiteContext), not ambient hostname-scoped SiteSetting::set().
      *
-     * Livewire updates hit /livewire/update without MarkAdminContext, so
-     * SiteSetting::set() can follow the admin hostname (e.g. 127.0.0.1.nip.io)
-     * instead of the tenant selected in Theme Manager.
+     * Livewire updates hit /livewire/update without MarkAdminContext, so a
+     * session-less SiteSetting::set() can follow the admin hostname
+     * (e.g. 127.0.0.1.nip.io) instead of the tenant selected in Theme Manager.
+     *
+     * Null context is two different installs:
+     * - Standalone (no `tallcms.multisite.resolver`): SiteSetting::set()/get()
+     *   so the value lands as a default-site override and frontend get() still
+     *   sees it. Pre-existing overrides must be overwritten, not shadowed by
+     *   a global row that get() never reaches.
+     * - Multisite "All Sites" (resolver bound, no site selected): setGlobal().
      */
     protected function writeScopedSetting(string $key, mixed $value, string $type, string $group): void
     {
@@ -139,8 +146,10 @@ class ThemeManager extends Page implements HasForms
 
         if ($context) {
             $this->getSiteSettingsService()->setForSite((int) $context->id, $key, $value, $type);
-        } else {
+        } elseif ($this->multisiteResolverIsBound()) {
             SiteSetting::setGlobal($key, $value, $type, $group);
+        } else {
+            SiteSetting::set($key, $value, $type, $group);
         }
 
         SiteSetting::clearCache();
@@ -154,7 +163,22 @@ class ThemeManager extends Page implements HasForms
             return $this->getSiteSettingsService()->getForSite((int) $context->id, $key, $default);
         }
 
-        return SiteSetting::getGlobal($key, $default);
+        if ($this->multisiteResolverIsBound()) {
+            return SiteSetting::getGlobal($key, $default);
+        }
+
+        return SiteSetting::get($key, $default);
+    }
+
+    /**
+     * True when the Multisite plugin registered its current-site resolver.
+     *
+     * Same discriminator SiteSetting::resolveCurrentSiteId() uses: bound means
+     * Multisite is installed (including "All Sites"); unbound means standalone.
+     */
+    protected function multisiteResolverIsBound(): bool
+    {
+        return app()->bound('tallcms.multisite.resolver');
     }
 
     /**
