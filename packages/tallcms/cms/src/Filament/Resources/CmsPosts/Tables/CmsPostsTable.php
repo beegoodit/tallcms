@@ -14,8 +14,10 @@ use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use TallCms\Cms\Filament\Tables\PublishingBulkActions;
 use TallCms\Cms\Filament\Tables\PublishingTable;
+use TallCms\Cms\Models\CmsCategory;
 
 class CmsPostsTable
 {
@@ -31,7 +33,6 @@ class CmsPostsTable
 
                 TextColumn::make('title')->label(__('tallcms::fields.title'))
                     ->searchable()
-                    ->sortable()
                     ->limit(50),
 
                 TextColumn::make('excerpt')->label(__('tallcms::fields.excerpt'))
@@ -82,8 +83,29 @@ class CmsPostsTable
 
                 SelectFilter::make('categories')
                     ->label(tallcms_label('categories', 'plural'))
-                    ->relationship('categories', 'name')
-                    ->multiple(),
+                    ->multiple()
+                    ->options(fn (): array => CmsCategory::query()
+                        ->orderBy('sort_order')
+                        ->get()
+                        ->mapWithKeys(fn (CmsCategory $category): array => [
+                            $category->getKey() => (string) $category->name,
+                        ])
+                        ->all())
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = array_values(array_filter(
+                            (array) ($data['values'] ?? []),
+                            fn (mixed $value): bool => filled($value),
+                        ));
+
+                        if ($values === []) {
+                            return $query;
+                        }
+
+                        return $query->whereHas(
+                            'categories',
+                            fn (Builder $categories): Builder => $categories->whereKey($values),
+                        );
+                    }),
 
                 SelectFilter::make('author')
                     ->relationship('author', 'name'),
