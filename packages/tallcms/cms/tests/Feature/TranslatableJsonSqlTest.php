@@ -58,6 +58,38 @@ class TranslatableJsonSqlTest extends TestCase
         $this->assertNotNull($found);
         $this->assertSame('News', (string) $found->name);
         $this->assertNull(CmsCategory::query()->withSlug('nachrichten')->first());
+
+        app()->setLocale('de');
+
+        $german = CmsCategory::query()->withSlug('nachrichten')->first();
+
+        $this->assertNotNull($german);
+        $this->assertSame($found->getKey(), $german->getKey());
+        $this->assertNull(CmsCategory::query()->withSlug('news')->first());
+    }
+
+    public function test_public_category_slug_uses_the_runtime_locale_and_falls_back_when_i18n_is_on(): void
+    {
+        $category = $this->category('News', 'Nachrichten', 'news', 'nachrichten', 1);
+        $postId = DB::table('tallcms_posts')->insertGetId([
+            'title' => json_encode(['en' => 'Hello', 'de' => 'Hallo']),
+            'slug' => json_encode(['en' => 'hello', 'de' => 'hallo']),
+            'status' => 'published',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('tallcms_post_category')->insert([
+            'post_id' => $postId,
+            'category_id' => $category->getKey(),
+        ]);
+
+        app()->setLocale('de');
+        config(['tallcms.i18n.enabled' => true]);
+
+        $this->assertSame($category->getKey(), CmsCategory::query()->forPublicSlug('nachrichten')->value('id'));
+        $this->assertSame($category->getKey(), CmsCategory::query()->forPublicSlug('news')->value('id'));
+        $this->assertSame(1, CmsPost::inCategory('nachrichten')->count());
+        $this->assertSame(1, CmsPost::inCategory('news')->count());
     }
 
     public function test_translatable_search_matches_the_locale_text_not_the_json_keys(): void
@@ -180,7 +212,7 @@ class TranslatableJsonSqlTest extends TestCase
             $root.'/src/Http/Controllers/RssFeedController.php',
         ] as $controller) {
             $source = file_get_contents($controller);
-            $this->assertStringContainsString('withSlug(', $source);
+            $this->assertStringContainsString('forPublicSlug(', $source);
             $this->assertStringNotContainsString("where('slug'", $source);
         }
 

@@ -15,7 +15,7 @@ class CategoryArchiveController extends Controller
 {
     public function show(Request $request, string $slug): View
     {
-        $category = CmsCategory::query()->withSlug($slug)->firstOrFail();
+        $category = CmsCategory::query()->forPublicSlug($slug)->firstOrFail();
 
         $perPage = config('tallcms.archive.per_page', 12);
 

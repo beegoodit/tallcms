@@ -114,11 +114,21 @@ class CmsCategory extends Model
             ->all();
     }
 
+    public function scopeForPublicSlug($query, string $slug)
+    {
+        if (tallcms_i18n_enabled()) {
+            return $query->withLocalizedSlug($slug);
+        }
+
+        return $query->withSlug($slug);
+    }
+
     public function scopeWithSlug($query, string $slug)
     {
-        // Slug is stored as JSON (translatable), so use JSON query
-        // This works regardless of whether i18n is enabled
-        $locale = config('app.locale', 'en');
+        // Slug is stored as JSON. Match the runtime locale, which
+        // SetLocaleMiddleware sets from the URL. config('app.locale') stays
+        // on the default locale.
+        $locale = app()->getLocale();
         $driver = $query->getConnection()->getDriverName();
 
         return match ($driver) {
