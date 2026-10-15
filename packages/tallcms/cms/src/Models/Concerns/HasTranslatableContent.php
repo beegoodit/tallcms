@@ -7,6 +7,9 @@ namespace TallCms\Cms\Models\Concerns;
 use Spatie\Translatable\HasTranslations;
 use TallCms\Cms\Services\LocaleRegistry;
 
+use function Filament\Support\generate_search_column_expression;
+use function Filament\Support\generate_search_term_expression;
+
 /**
  * Trait for models with translatable content.
  *
@@ -84,9 +87,8 @@ trait HasTranslatableContent
     /**
      * Match a translatable JSON column against the current locale's text.
      *
-     * Avoids ORDER BY / LIKE on the raw json value. PostgreSQL has no
-     * equality or ordering operator for json; LIKE on the blob also matches
-     * locale keys ("en", "de") on every driver.
+     * Uses Filament's search expressions so MySQL's utf8mb4_bin JSON text is
+     * compared case-insensitively, the same way the main resource tables search.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
@@ -94,14 +96,20 @@ trait HasTranslatableContent
     public function scopeWhereTranslatableContains($query, string $column, string $term, ?string $locale = null)
     {
         $locale = $locale ?? app()->getLocale();
-        $driver = $query->getConnection()->getDriverName();
-        $like = '%'.$term.'%';
+        $connection = $query->getConnection();
 
-        return match ($driver) {
-            'sqlite' => $query->whereRaw("JSON_EXTRACT({$column}, '$.{$locale}') LIKE ?", [$like]),
-            'pgsql' => $query->whereRaw("{$column}::jsonb ->> ? ILIKE ?", [$locale, $like]),
-            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT({$column}, '$.\"".$locale."\"')) LIKE ?", [$like]),
+        $jsonColumn = match ($connection->getDriverName()) {
+            'pgsql' => "{$column}->>'{$locale}'",
+            default => "json_extract({$column}, '$.\"{$locale}\"')",
         };
+
+        $search = generate_search_term_expression($term, true, $connection);
+
+        return $query->where(
+            generate_search_column_expression($jsonColumn, true, $connection),
+            'like',
+            '%'.$search.'%',
+        );
     }
 
     /**

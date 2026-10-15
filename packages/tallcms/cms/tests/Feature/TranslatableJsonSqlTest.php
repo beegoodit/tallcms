@@ -98,11 +98,8 @@ class TranslatableJsonSqlTest extends TestCase
 
         app()->setLocale('en');
 
-        $sql = CmsCategory::query()->whereTranslatableContains('name', 'News')->toSql();
-
-        $this->assertStringContainsString('JSON_EXTRACT', $sql);
-        $this->assertStringNotContainsString('::jsonb', $sql);
         $this->assertSame(1, CmsCategory::query()->whereTranslatableContains('name', 'News')->count());
+        $this->assertSame(1, CmsCategory::query()->whereTranslatableContains('name', 'news')->count());
         $this->assertSame(0, CmsCategory::query()->whereTranslatableContains('name', 'Nachrichten')->count());
         $this->assertSame(0, CmsCategory::query()->whereTranslatableContains('name', 'en')->count());
     }
