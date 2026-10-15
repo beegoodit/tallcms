@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace TallCms\Cms\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -71,6 +72,48 @@ class CmsCategory extends Model
         return $this->belongsToMany(CmsPost::class, 'tallcms_post_category', 'category_id', 'post_id');
     }
 
+    /**
+     * Option list for category selects.
+     *
+     * Loads models and reads the translated name. A relationship option query
+     * selects distinct category rows, and PostgreSQL cannot compare json columns.
+     *
+     * @param  list<int|string>|null  $ids
+     * @param  (callable(Builder<CmsCategory>): void)|null  $constrain
+     * @return array<int|string, string>
+     */
+    public static function translatedSelectOptions(?string $search = null, ?array $ids = null, ?callable $constrain = null): array
+    {
+        $query = static::query()->orderBy('sort_order');
+
+        if ($ids !== null) {
+            $ids = array_values(array_filter(
+                $ids,
+                fn (mixed $id): bool => filled($id),
+            ));
+
+            if ($ids === []) {
+                return [];
+            }
+
+            $query->whereKey($ids);
+        }
+
+        if (filled($search)) {
+            $query->whereTranslatableContains('name', $search);
+        }
+
+        if ($constrain !== null) {
+            $constrain($query);
+        }
+
+        return $query->get()
+            ->mapWithKeys(fn (self $category): array => [
+                $category->getKey() => (string) $category->name,
+            ])
+            ->all();
+    }
+
     public function scopeWithSlug($query, string $slug)
     {
         // Slug is stored as JSON (translatable), so use JSON query
@@ -80,8 +123,8 @@ class CmsCategory extends Model
 
         return match ($driver) {
             'sqlite' => $query->whereRaw("JSON_EXTRACT(slug, '$.{$locale}') = ?", [$slug]),
-            'pgsql' => $query->whereRaw("slug::jsonb ->> ? = ?", [$locale, $slug]),
-            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(slug, '$.\"" . $locale . "\"')) = ?", [$slug]),
+            'pgsql' => $query->whereRaw('slug::jsonb ->> ? = ?', [$locale, $slug]),
+            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(slug, '$.\"".$locale."\"')) = ?", [$slug]),
         };
     }
 
@@ -112,11 +155,11 @@ class CmsCategory extends Model
             // Check reserved slugs (locale codes)
             $reserved = app(\TallCms\Cms\Services\LocaleRegistry::class)->getReservedSlugs();
             if (in_array($slug, $reserved)) {
-                $slug = $baseSlug . '-category';
+                $slug = $baseSlug.'-category';
             }
 
             while ($this->localizedSlugExists($slug, $locale)) {
-                $slug = $baseSlug . '-' . $counter;
+                $slug = $baseSlug.'-'.$counter;
                 $counter++;
             }
 
@@ -129,7 +172,7 @@ class CmsCategory extends Model
         $counter = 1;
 
         while ($this->slugExists($slug)) {
-            $slug = $baseSlug . '-' . $counter;
+            $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
 
@@ -148,8 +191,8 @@ class CmsCategory extends Model
 
         match ($driver) {
             'sqlite' => $query->whereRaw("JSON_EXTRACT(slug, '$.{$locale}') = ?", [$slug]),
-            'pgsql' => $query->whereRaw("slug::jsonb ->> ? = ?", [$locale, $slug]),
-            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(slug, '$.\"" . $locale . "\"')) = ?", [$slug]),
+            'pgsql' => $query->whereRaw('slug::jsonb ->> ? = ?', [$locale, $slug]),
+            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(slug, '$.\"".$locale."\"')) = ?", [$slug]),
         };
 
         if ($this->exists) {

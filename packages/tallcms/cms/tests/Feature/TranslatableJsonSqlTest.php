@@ -2,11 +2,15 @@
 
 namespace TallCms\Cms\Tests\Feature;
 
+use Filament\Forms\Components\Select;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use TallCms\Cms\Filament\Resources\CmsPosts\Schemas\CmsPostForm;
+use TallCms\Cms\Filament\Resources\CmsPosts\Tables\CmsPostsTable;
 use TallCms\Cms\Models\CmsCategory;
+use TallCms\Cms\Models\CmsPost;
 use TallCms\Cms\Services\SitemapService;
 use TallCms\Cms\Tests\TestCase;
 
@@ -89,13 +93,70 @@ class TranslatableJsonSqlTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/order by ["`]?name["`]?/i', $sql);
     }
 
+    public function test_category_selects_search_and_label_without_distinct_json_rows(): void
+    {
+        $category = $this->category('News', 'Nachrichten', 'news', 'nachrichten', 2);
+        $postId = DB::table('tallcms_posts')->insertGetId([
+            'title' => json_encode(['en' => 'Hello']),
+            'slug' => json_encode(['en' => 'hello']),
+            'status' => 'published',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('tallcms_post_category')->insert([
+            'post_id' => $postId,
+            'category_id' => $category->getKey(),
+        ]);
+
+        $field = CmsPostsTable::categoryFilter()->getFormField();
+
+        $searchSql = $this->captureSql(function () use ($field, $category): void {
+            $results = $this->invokeSelectCallback($field, 'getSearchResultsUsing', ['News']);
+
+            $this->assertSame('News', $this->optionLabel($results, $category));
+        });
+        $this->assertStringNotContainsString('distinct', strtolower($searchSql));
+
+        $labelSql = $this->captureSql(function () use ($field, $category): void {
+            $labels = $this->invokeSelectCallback($field, 'getOptionLabelsUsing', [[$category->getKey()]]);
+
+            $this->assertSame('News', $this->optionLabel($labels, $category));
+        });
+        $this->assertStringNotContainsString('distinct', strtolower($labelSql));
+
+        $filter = CmsPostsTable::categoryFilter();
+        $filterSql = $this->captureSql(function () use ($filter, $category, $postId): void {
+            $matches = $filter->apply(CmsPost::query(), [
+                'values' => [$category->getKey()],
+            ])->pluck('id');
+
+            $this->assertCount(1, $matches);
+            $this->assertTrue($matches->contains($postId));
+        });
+        $this->assertStringNotContainsString('distinct', strtolower($filterSql));
+
+        $select = CmsPostForm::categorySelect();
+
+        $formSql = $this->captureSql(function () use ($select, $category): void {
+            $labels = $this->invokeSelectCallback($select, 'getOptionLabelsUsing', [[$category->getKey()]]);
+            $results = $this->invokeSelectCallback($select, 'getSearchResultsUsing', ['news']);
+
+            $this->assertSame('News', $this->optionLabel($labels, $category));
+            $this->assertSame('News', $this->optionLabel($results, $category));
+        });
+        $this->assertStringNotContainsString('distinct', strtolower($formSql));
+    }
+
     public function test_call_sites_do_not_order_or_pluck_translatable_json(): void
     {
         $root = dirname(__DIR__, 2);
 
         $postsTable = file_get_contents($root.'/src/Filament/Resources/CmsPosts/Tables/CmsPostsTable.php');
-        $this->assertStringContainsString("orderBy('sort_order')", $postsTable);
-        $this->assertStringContainsString('getOptionLabelFromRecordUsing', $postsTable);
+        $this->assertStringContainsString('translatedSelectOptions', $postsTable);
+        $this->assertStringContainsString('whereHas(', $postsTable);
+        $this->assertStringNotContainsString("relationship(\n                        'categories'", $postsTable);
+        $categories = file_get_contents($root.'/src/Models/CmsCategory.php');
+        $this->assertStringContainsString("orderBy('sort_order')", $categories);
         $this->assertStringNotContainsString('->sortable()', $this->columnBlock($postsTable, 'title'));
 
         $pagesTable = file_get_contents($root.'/src/Filament/Resources/CmsPages/Tables/CmsPagesTable.php');
@@ -136,6 +197,38 @@ class TranslatableJsonSqlTest extends TestCase
         $this->assertStringContainsString("whereTranslatableContains('title'", $relation);
         $this->assertStringContainsString("whereTranslatableContains('slug'", $relation);
         $this->assertStringNotContainsString('->sortable()', $this->columnBlock($relation, 'title'));
+    }
+
+    /**
+     * @param  array<int|string, string>  $options
+     */
+    private function optionLabel(array $options, CmsCategory $category): ?string
+    {
+        return $options[$category->getKey()] ?? $options[(string) $category->getKey()] ?? null;
+    }
+
+    /**
+     * @param  array<int, mixed>  $arguments
+     */
+    private function invokeSelectCallback(Select $select, string $property, array $arguments): mixed
+    {
+        $callback = (fn () => $this->{$property})->call($select);
+
+        $this->assertInstanceOf(\Closure::class, $callback);
+
+        return $callback(...$arguments);
+    }
+
+    private function captureSql(callable $callback): string
+    {
+        $sql = '';
+        DB::listen(function ($query) use (&$sql): void {
+            $sql .= ' '.$query->sql;
+        });
+
+        $callback();
+
+        return $sql;
     }
 
     private function category(string $enName, string $deName, string $enSlug, string $deSlug, int $sortOrder): CmsCategory
