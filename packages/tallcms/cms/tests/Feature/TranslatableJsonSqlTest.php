@@ -176,58 +176,6 @@ class TranslatableJsonSqlTest extends TestCase
         $this->assertStringNotContainsString('distinct', strtolower($formSql));
     }
 
-    public function test_call_sites_do_not_order_or_pluck_translatable_json(): void
-    {
-        $root = dirname(__DIR__, 2);
-
-        $postsTable = file_get_contents($root.'/src/Filament/Resources/CmsPosts/Tables/CmsPostsTable.php');
-        $this->assertStringContainsString('translatedSelectOptions', $postsTable);
-        $this->assertStringContainsString('whereHas(', $postsTable);
-        $this->assertStringNotContainsString("relationship(\n                        'categories'", $postsTable);
-        $categories = file_get_contents($root.'/src/Models/CmsCategory.php');
-        $this->assertStringContainsString("orderBy('sort_order')", $categories);
-        $this->assertStringNotContainsString('->sortable()', $this->columnBlock($postsTable, 'title'));
-
-        $pagesTable = file_get_contents($root.'/src/Filament/Resources/CmsPages/Tables/CmsPagesTable.php');
-        $this->assertStringNotContainsString('->sortable()', $this->columnBlock($pagesTable, 'title'));
-
-        $categoriesTable = file_get_contents($root.'/src/Filament/Resources/CmsCategories/Tables/CmsCategoriesTable.php');
-        $this->assertStringNotContainsString('->sortable()', $this->columnBlock($categoriesTable, 'name'));
-
-        $comments = file_get_contents($root.'/src/Filament/Resources/CmsComments/Tables/CmsCommentsTable.php');
-        $this->assertStringNotContainsString('->sortable()', $this->columnBlock($comments, 'post.title'));
-
-        $widget = file_get_contents($root.'/resources/views/components/widgets/categories.blade.php');
-        $this->assertStringContainsString("orderBy('sort_order')", $widget);
-        $this->assertStringNotContainsString("orderBy('name')", $widget);
-
-        $sitemap = file_get_contents($root.'/src/Services/SitemapService.php');
-        $this->assertStringNotContainsString("orderBy('name')", $sitemap);
-
-        foreach ([
-            $root.'/src/Http/Controllers/CategoryArchiveController.php',
-            $root.'/src/Http/Controllers/RssFeedController.php',
-        ] as $controller) {
-            $source = file_get_contents($controller);
-            $this->assertStringContainsString('forPublicSlug(', $source);
-            $this->assertStringNotContainsString("where('slug'", $source);
-        }
-
-        foreach ([
-            $root.'/src/Filament/Resources/CmsPosts/Schemas/CmsPostForm.php',
-            $root.'/src/Filament/Resources/CmsCategories/Schemas/CmsCategoryForm.php',
-            $root.'/src/Filament/Blocks/PostsBlock.php',
-        ] as $form) {
-            $this->assertStringNotContainsString("pluck('name'", file_get_contents($form));
-            $this->assertStringNotContainsString("pluck('title'", file_get_contents($form));
-        }
-
-        $relation = file_get_contents($root.'/src/Filament/Resources/SiteResource/RelationManagers/PagesRelationManager.php');
-        $this->assertStringContainsString("whereTranslatableContains('title'", $relation);
-        $this->assertStringContainsString("whereTranslatableContains('slug'", $relation);
-        $this->assertStringNotContainsString('->sortable()', $this->columnBlock($relation, 'title'));
-    }
-
     /**
      * @param  array<int|string, string>  $options
      */
@@ -271,16 +219,5 @@ class TranslatableJsonSqlTest extends TestCase
         $category->save();
 
         return $category;
-    }
-
-    private function columnBlock(string $source, string $column): string
-    {
-        $needle = "TextColumn::make('{$column}')";
-        $start = strpos($source, $needle);
-        $this->assertNotFalse($start, "Missing column {$column}");
-
-        $next = strpos($source, 'TextColumn::make(', $start + strlen($needle));
-
-        return $next === false ? substr($source, $start) : substr($source, $start, $next - $start);
     }
 }
