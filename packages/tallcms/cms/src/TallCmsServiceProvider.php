@@ -295,6 +295,9 @@ class TallCmsServiceProvider extends PackageServiceProvider
         // Current site for new content; plugins (multisite) may bind their own.
         $this->app->scopedIf(Contracts\SiteContext::class, Services\DefaultSiteContext::class);
 
+        // Which sites a user may open in the site panel; plugins may bind their own.
+        $this->app->bindIf(Contracts\SiteAccess::class, Services\DefaultSiteAccess::class);
+
         // Register MenuUrlResolver singleton (needed for menu helper functions)
         $this->app->singleton('menu.url.resolver', Services\MenuUrlResolver::class);
 

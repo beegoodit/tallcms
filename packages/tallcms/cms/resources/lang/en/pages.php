@@ -42,6 +42,10 @@ return [
         'navigation' => 'Update Progress',
         'title' => 'Update Progress',
     ],
+    'site_dashboard' => [
+        'domain' => 'Domain',
+        'open_website' => 'Open website',
+    ],
     'menu_items' => [
         'title' => 'Menu Items',
     ],

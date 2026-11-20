@@ -42,6 +42,10 @@ return [
         'navigation' => 'Aktualisierungsfortschritt',
         'title' => 'Aktualisierungsfortschritt',
     ],
+    'site_dashboard' => [
+        'domain' => 'Domain',
+        'open_website' => 'Website öffnen',
+    ],
     'menu_items' => [
         'title' => 'Menüeinträge',
     ],
