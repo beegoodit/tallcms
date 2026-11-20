@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace TallCms\Cms\Filament\Resources\SiteResource\RelationManagers;
 
 use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use TallCms\Cms\Enums\ContentStatus;
 use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
+use TallCms\Cms\Filament\Tables\PublishingBulkActions;
+use TallCms\Cms\Filament\Tables\PublishingTable;
 
 class PagesRelationManager extends RelationManager
 {
@@ -29,19 +31,15 @@ class PagesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('title')->label(__('tallcms::fields.title'))
-                    ->searchable()
-                    ->sortable()
+                    ->searchable(query: fn ($query, string $search) => $query->whereTranslatableContains('title', $search))
                     ->limit(40),
 
                 TextColumn::make('slug')->label(__('tallcms::fields.slug'))
-                    ->searchable()
+                    ->searchable(query: fn ($query, string $search) => $query->whereTranslatableContains('slug', $search))
                     ->limit(30)
                     ->color('gray'),
 
-                TextColumn::make('status')->label(__('tallcms::fields.status'))
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => ContentStatus::from($state)->getLabel())
-                    ->color(fn (string $state): string => ContentStatus::from($state)->getColor()),
+                PublishingTable::statusColumn(),
 
                 IconColumn::make('is_homepage')
                     ->label(__('tallcms::fields.home'))
@@ -52,6 +50,9 @@ class PagesRelationManager extends RelationManager
                     ->dateTime()
                     ->since()
                     ->sortable(),
+            ])
+            ->filters([
+                PublishingTable::statusFilter(),
             ])
             ->defaultSort('sort_order')
             ->headerActions([
@@ -78,6 +79,11 @@ class PagesRelationManager extends RelationManager
                         'record' => $record,
                         'from_site' => $this->getOwnerRecord()->id,
                     ])),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    ...PublishingBulkActions::make(),
+                ]),
             ]);
     }
 }

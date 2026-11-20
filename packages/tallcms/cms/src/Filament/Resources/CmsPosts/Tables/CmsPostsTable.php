@@ -14,7 +14,10 @@ use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
-use TallCms\Cms\Enums\ContentStatus;
+use Illuminate\Database\Eloquent\Builder;
+use TallCms\Cms\Filament\Tables\PublishingBulkActions;
+use TallCms\Cms\Filament\Tables\PublishingTable;
+use TallCms\Cms\Models\CmsCategory;
 
 class CmsPostsTable
 {
@@ -30,7 +33,6 @@ class CmsPostsTable
 
                 TextColumn::make('title')->label(__('tallcms::fields.title'))
                     ->searchable()
-                    ->sortable()
                     ->limit(50),
 
                 TextColumn::make('excerpt')->label(__('tallcms::fields.excerpt'))
@@ -39,11 +41,7 @@ class CmsPostsTable
                     ->toggleable()
                     ->color('gray'),
 
-                TextColumn::make('status')->label(__('tallcms::fields.status'))
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => ContentStatus::from($state)->getLabel())
-                    ->color(fn (string $state): string => ContentStatus::from($state)->getColor())
-                    ->icon(fn (string $state): string => ContentStatus::from($state)->getIcon()),
+                PublishingTable::statusColumn(),
 
                 ToggleColumn::make('is_featured')
                     ->label(__('tallcms::fields.featured')),
@@ -74,12 +72,7 @@ class CmsPostsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('status')
-                    ->options([
-                        ContentStatus::Draft->value => ContentStatus::Draft->getLabel(),
-                        ContentStatus::Pending->value => ContentStatus::Pending->getLabel(),
-                        ContentStatus::Published->value => ContentStatus::Published->getLabel(),
-                    ]),
+                PublishingTable::statusFilter(),
 
                 SelectFilter::make('is_featured')
                     ->label(__('tallcms::fields.featured'))
@@ -90,8 +83,29 @@ class CmsPostsTable
 
                 SelectFilter::make('categories')
                     ->label(tallcms_label('categories', 'plural'))
-                    ->relationship('categories', 'name')
-                    ->multiple(),
+                    ->multiple()
+                    ->options(fn (): array => CmsCategory::query()
+                        ->orderBy('sort_order')
+                        ->get()
+                        ->mapWithKeys(fn (CmsCategory $category): array => [
+                            $category->getKey() => (string) $category->name,
+                        ])
+                        ->all())
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = array_values(array_filter(
+                            (array) ($data['values'] ?? []),
+                            fn (mixed $value): bool => filled($value),
+                        ));
+
+                        if ($values === []) {
+                            return $query;
+                        }
+
+                        return $query->whereHas(
+                            'categories',
+                            fn (Builder $categories): Builder => $categories->whereKey($values),
+                        );
+                    }),
 
                 SelectFilter::make('author')
                     ->relationship('author', 'name'),
@@ -103,6 +117,7 @@ class CmsPostsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    ...PublishingBulkActions::make(),
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),

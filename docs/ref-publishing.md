@@ -49,6 +49,22 @@ Draft → Pending Review → Published
 - **Permission**: `Approve:CmsPost` / `Approve:CmsPage`
 - **Effect**: Returns to `draft` with rejection reason
 
+### Bulk actions (admin lists)
+
+Posts and pages tables expose shared Filament bulk actions via `TallCms\Cms\Filament\Tables\PublishingBulkActions`:
+
+| Action | When visible | Eligible rows | Effect |
+|--------|--------------|---------------|--------|
+| **Publish selected** | Review workflow **off** | `draft` + `update` permission | `published`, `published_at ??= now()` |
+| **Approve selected** | Review workflow **on** | `pending` + approve permission | `PublishingWorkflowService::approve()` |
+| **Unpublish selected** | Always (with permission) | `published` + `update` | `draft`, `published_at = null` (same as API) |
+
+Ineligible or unauthorized rows are **skipped**; the batch still completes for allowed rows. Plugins with `HasPublishingWorkflow` models can opt in with `...PublishingBulkActions::make()`. Helpers: `PublishingTable::statusColumn()` / `statusFilter()`.
+
+Also wired on the **Site → Pages** relation manager (standalone `tallcms/cms` + Multisite plugin).
+
+For large selections, prefer paging — v1 runs synchronously in the request.
+
 ### Scheduled Publishing
 
 ```php

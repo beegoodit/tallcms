@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Filament bulk actions for publishing workflow content: publish selected drafts, approve selected pending items (when review workflow is on), and unpublish selected published items. Shared via `TallCms\Cms\Filament\Tables\PublishingBulkActions` and wired into Posts, Pages, and the Site → Pages relation manager.
+
 ## [4.3.2] - 2026-04-25
 
 ### Added
