@@ -292,6 +292,9 @@ class TallCmsServiceProvider extends PackageServiceProvider
         // Register class aliases for backwards compatibility
         $this->registerClassAliases();
 
+        // Current site for new content; plugins (multisite) may bind their own.
+        $this->app->scopedIf(Contracts\SiteContext::class, Services\DefaultSiteContext::class);
+
         // Register MenuUrlResolver singleton (needed for menu helper functions)
         $this->app->singleton('menu.url.resolver', Services\MenuUrlResolver::class);
 

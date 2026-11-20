@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace TallCms\Cms\Filament\Forms;
 
 use Illuminate\Support\Facades\Schema;
+use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Models\CmsPage;
 
 /**
@@ -31,9 +32,11 @@ class OwnerSitePicker
      *  - Create: `$livewire->ownerSiteId` is set by the create page's
      *    mount() (see CreateCmsPage), captured from the ?site=<id> URL.
      *
-     * Returns null when no owner context is available (test helpers
-     * calling the schema in isolation, or non-multisite installs where
-     * site_id isn't meaningful).
+     *  - Otherwise: the current site (SiteContext), which a new record
+     *    also gets on create.
+     *
+     * Returns null when none of these is available (e.g. the multisite
+     * plugin's untenanted admin without ?site=).
      */
     public static function resolveOwnerSiteId(mixed $livewire): ?int
     {
@@ -51,7 +54,9 @@ class OwnerSitePicker
             return (int) $record->site_id;
         }
 
-        return null;
+        // A new record gets its site from the context on create, so its
+        // pickers list that site's pages (one site, or the site panel's tenant).
+        return app(SiteContext::class)->currentSiteId();
     }
 
     /**

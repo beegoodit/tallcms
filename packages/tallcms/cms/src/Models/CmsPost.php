@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use TallCms\Cms\Casts\TranslatableArray;
 use TallCms\Cms\Filament\Forms\Components\MediaLibraryFileAttachmentProvider;
+use TallCms\Cms\Models\Concerns\BelongsToSite;
 use TallCms\Cms\Models\Concerns\HasPreviewTokens;
 use TallCms\Cms\Models\Concerns\HasPublishingWorkflow;
 use TallCms\Cms\Models\Concerns\HasRevisions;
@@ -25,6 +26,7 @@ use TallCms\Cms\Services\CustomBlockDiscoveryService;
 
 class CmsPost extends Model implements HasRichContent
 {
+    use BelongsToSite;
     use HasFactory;
     use HasPreviewTokens;
     use HasPublishingWorkflow;

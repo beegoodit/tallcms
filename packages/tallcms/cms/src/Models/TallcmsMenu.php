@@ -6,10 +6,13 @@ namespace TallCms\Cms\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use TallCms\Cms\Models\Concerns\BelongsToSite;
 use TallCms\Cms\Support\MenuCache;
 
 class TallcmsMenu extends Model
 {
+    use BelongsToSite;
+
     protected $table = 'tallcms_menus';
 
     protected $fillable = [

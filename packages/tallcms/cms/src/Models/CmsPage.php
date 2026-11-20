@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use TallCms\Cms\Casts\TranslatableArray;
 use TallCms\Cms\Filament\Forms\Components\MediaLibraryFileAttachmentProvider;
+use TallCms\Cms\Models\Concerns\BelongsToSite;
 use TallCms\Cms\Models\Concerns\HasPreviewTokens;
 use TallCms\Cms\Models\Concerns\HasPublishingWorkflow;
 use TallCms\Cms\Models\Concerns\HasRevisions;
@@ -26,6 +27,7 @@ use TallCms\Cms\Support\MenuCache;
 
 class CmsPage extends Model implements HasRichContent
 {
+    use BelongsToSite;
     use HasFactory;
     use HasPreviewTokens;
     use HasPublishingWorkflow;
@@ -96,11 +98,6 @@ class CmsPage extends Model implements HasRichContent
         'last_reviewed_at' => 'datetime',
         'sources' => 'array',
     ];
-
-    public function site(): BelongsTo
-    {
-        return $this->belongsTo(Site::class, 'site_id');
-    }
 
     protected function setUpRichContent(): void
     {

@@ -9,9 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use TallCms\Cms\Models\Concerns\BelongsToSite;
 
 class CmsPreviewToken extends Model
 {
+    use BelongsToSite;
+
     protected $table = 'tallcms_preview_tokens';
 
     protected $fillable = [
@@ -36,6 +39,19 @@ class CmsPreviewToken extends Model
     public function tokenable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Belongs to the site of the page or post it was made for.
+     */
+    protected function siteIdForNewRecord(): ?int
+    {
+        return $this->siteIdOfParent($this->tokenable_type, $this->tokenable_id);
+    }
+
+    public function requiresSite(): bool
+    {
+        return $this->parentRequiresSite($this->tokenable_type);
     }
 
     /**

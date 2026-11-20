@@ -7,9 +7,12 @@ namespace TallCms\Cms\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
+use TallCms\Cms\Models\Concerns\BelongsToSite;
 
 class MediaCollection extends Model
 {
+    use BelongsToSite;
+
     protected $table = 'tallcms_media_collections';
 
     protected $fillable = [

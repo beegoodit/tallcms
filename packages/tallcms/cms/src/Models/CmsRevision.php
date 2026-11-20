@@ -7,10 +7,13 @@ namespace TallCms\Cms\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use TallCms\Cms\Models\Concerns\BelongsToSite;
 use TallCms\Cms\Services\ContentDiffService;
 
 class CmsRevision extends Model
 {
+    use BelongsToSite;
+
     protected $table = 'tallcms_revisions';
 
     protected $fillable = [
@@ -59,6 +62,19 @@ class CmsRevision extends Model
     public function revisionable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Belongs to the site of the page or post it was made for.
+     */
+    protected function siteIdForNewRecord(): ?int
+    {
+        return $this->siteIdOfParent($this->revisionable_type, $this->revisionable_id);
+    }
+
+    public function requiresSite(): bool
+    {
+        return $this->parentRequiresSite($this->revisionable_type);
     }
 
     /**

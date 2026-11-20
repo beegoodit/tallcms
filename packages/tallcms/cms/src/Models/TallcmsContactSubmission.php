@@ -6,9 +6,12 @@ namespace TallCms\Cms\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use TallCms\Cms\Models\Concerns\BelongsToSite;
 
 class TallcmsContactSubmission extends Model
 {
+    use BelongsToSite;
+
     protected $table = 'tallcms_contact_submissions';
 
     protected $fillable = [

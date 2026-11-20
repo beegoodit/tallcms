@@ -537,6 +537,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Sites
+    |--------------------------------------------------------------------------
+    |
+    | Site-owned content gets its site_id on create from the current site
+    | (TallCms\Cms\Contracts\SiteContext). Models listed here keep site_id
+    | empty instead; the multisite plugin lists its user-owned content.
+    |
+    */
+    'sites' => [
+        'unassigned_models' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Comments
     |--------------------------------------------------------------------------
     |

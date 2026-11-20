@@ -10,10 +10,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use TallCms\Cms\Models\Concerns\BelongsToSite;
 use TallCms\Cms\Models\Concerns\HasTranslatableContent;
 
 class CmsCategory extends Model
 {
+    use BelongsToSite;
     use HasTranslatableContent;
     use SoftDeletes;
 

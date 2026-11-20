@@ -11,11 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Notification;
+use TallCms\Cms\Models\Concerns\BelongsToSite;
 use TallCms\Cms\Notifications\CommentApprovedNotification;
 use TallCms\Cms\Support\NotificationDispatcher;
 
 class CmsComment extends Model
 {
+    use BelongsToSite;
     use HasFactory;
     use SoftDeletes;
 
@@ -56,6 +58,22 @@ class CmsComment extends Model
     public function post(): BelongsTo
     {
         return $this->belongsTo(CmsPost::class, 'post_id');
+    }
+
+    /**
+     * A comment belongs to its post's site.
+     */
+    protected function siteIdForNewRecord(): ?int
+    {
+        return $this->siteIdOfParent($this->post()->getRelated()::class, $this->post_id);
+    }
+
+    /**
+     * Always required (outside the console), as before the move to core.
+     */
+    public function requiresSite(): bool
+    {
+        return true;
     }
 
     public function parent(): BelongsTo
