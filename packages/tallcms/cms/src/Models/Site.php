@@ -84,7 +84,7 @@ class Site extends Model
     /**
      * Find an active site by domain.
      */
-    public static function findByDomain(string $domain): ?self
+    public static function findByDomain(string $domain): ?static
     {
         return static::where('domain', static::normalizeDomain($domain))
             ->where('is_active', true)
@@ -94,7 +94,7 @@ class Site extends Model
     /**
      * Get the default site.
      */
-    public static function getDefault(): ?self
+    public static function getDefault(): ?static
     {
         return static::where('is_default', true)->first();
     }

@@ -33,7 +33,7 @@ trait BelongsToSite
 
     public function site(): BelongsTo
     {
-        return $this->belongsTo(Site::class, 'site_id');
+        return $this->belongsTo(config('tallcms.sites.model', Site::class), 'site_id');
     }
 
     /**
