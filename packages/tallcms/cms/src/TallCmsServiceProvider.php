@@ -963,6 +963,11 @@ class TallCmsServiceProvider extends PackageServiceProvider
 
             // v4.0.1 patch: add user_id for installs that ran v4.0.0 without it
             '2026_04_21_000001_add_user_id_to_tallcms_sites_table',
+
+            // site_id on all site-owned content (formerly added by the multisite plugin)
+            '2026_11_21_000001_add_site_id_to_content_tables',
+            '2026_11_21_000002_backfill_site_id_on_content_tables',
+            '2026_11_21_000003_scope_menu_location_unique_to_site',
         ];
     }
 
