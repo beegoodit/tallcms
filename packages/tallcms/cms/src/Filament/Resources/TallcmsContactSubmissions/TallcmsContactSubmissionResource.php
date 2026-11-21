@@ -70,19 +70,27 @@ class TallcmsContactSubmissionResource extends Resource
         return static::scopeQueryToOwnedSites(parent::getEloquentQuery());
     }
 
+    /**
+     * Unread submissions, shown at 0 too (like the page and menu counts).
+     */
     public static function getNavigationBadge(): ?string
     {
-        try {
-            $count = static::scopeQueryToOwnedSites(static::getModel()::unread())->count();
+        $count = static::unreadCount();
 
-            return $count > 0 ? (string) $count : null;
-        } catch (\Throwable) {
-            return null;
-        }
+        return $count === null ? null : (string) $count;
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'warning';
+        return static::unreadCount() ? 'warning' : 'gray';
+    }
+
+    protected static function unreadCount(): ?int
+    {
+        try {
+            return static::scopeQueryToOwnedSites(static::getModel()::unread())->count();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }
