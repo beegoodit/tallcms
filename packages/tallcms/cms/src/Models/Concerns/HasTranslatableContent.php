@@ -6,6 +6,7 @@ namespace TallCms\Cms\Models\Concerns;
 
 use Spatie\Translatable\HasTranslations;
 use TallCms\Cms\Services\LocaleRegistry;
+use TallCms\Cms\Support\TranslatableJson;
 
 /**
  * Trait for models with translatable content.
@@ -62,23 +63,7 @@ trait HasTranslatableContent
      */
     protected function whereJsonLocale($query, string $column, string $locale, string $value): void
     {
-        $driver = $query->getConnection()->getDriverName();
-
-        switch ($driver) {
-            case 'sqlite':
-                // SQLite uses JSON_EXTRACT
-                $query->whereRaw("JSON_EXTRACT({$column}, '$.{$locale}') = ?", [$value]);
-                break;
-
-            case 'pgsql':
-                // PostgreSQL uses ->> operator for text extraction
-                $query->whereRaw("{$column}::jsonb ->> ? = ?", [$locale, $value]);
-                break;
-
-            default:
-                // MySQL/MariaDB use JSON_UNQUOTE + JSON_EXTRACT
-                $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT({$column}, '$.\"".$locale."\"')) = ?", [$value]);
-        }
+        TranslatableJson::whereLocale($query, $column, $locale, $value);
     }
 
     /**
@@ -93,15 +78,7 @@ trait HasTranslatableContent
      */
     public function scopeWhereTranslatableContains($query, string $column, string $term, ?string $locale = null)
     {
-        $locale = $locale ?? app()->getLocale();
-        $driver = $query->getConnection()->getDriverName();
-        $like = '%'.$term.'%';
-
-        return match ($driver) {
-            'sqlite' => $query->whereRaw("JSON_EXTRACT({$column}, '$.{$locale}') LIKE ?", [$like]),
-            'pgsql' => $query->whereRaw("{$column}::jsonb ->> ? ILIKE ?", [$locale, $like]),
-            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT({$column}, '$.\"".$locale."\"')) LIKE ?", [$like]),
-        };
+        return TranslatableJson::whereLocaleContains($query, $column, $locale ?? app()->getLocale(), $term);
     }
 
     /**
