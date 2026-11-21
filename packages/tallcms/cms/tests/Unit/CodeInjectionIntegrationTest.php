@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\PermissionServiceProvider;
-use TallCms\Cms\Filament\Resources\SiteResource\Pages\EditSite;
 use TallCms\Cms\Filament\Resources\SiteResource\SiteForm;
 use TallCms\Cms\Models\SiteSetting;
+use TallCms\Cms\Services\SiteSettingsFormState;
 use TallCms\Cms\Services\SiteSettingsService;
 use TallCms\Cms\Tests\Fixtures\User;
 use TallCms\Cms\Tests\TestCase;
@@ -288,18 +288,13 @@ class CodeInjectionIntegrationTest extends TestCase
 
     public function test_embed_code_keys_are_wired_into_edit_site_setting_keys(): void
     {
-        // Reflection check: regression guard against removing the embed code keys.
-        $reflection = new \ReflectionClass(EditSite::class);
-        $property = $reflection->getProperty('settingKeys');
-        $property->setAccessible(true);
+        // Regression guard against removing the embed code keys. EditSite
+        // loads and saves through SiteSettingsFormState, which owns the keys.
+        $keys = SiteSettingsFormState::KEYS;
 
-        // The default value lives on the class definition.
-        $defaults = $reflection->getDefaultProperties();
-        $keys = $defaults['settingKeys'] ?? [];
-
-        $this->assertArrayHasKey('code_head', $keys, 'EditSite must include code_head in $settingKeys');
-        $this->assertArrayHasKey('code_body_start', $keys, 'EditSite must include code_body_start in $settingKeys');
-        $this->assertArrayHasKey('code_body_end', $keys, 'EditSite must include code_body_end in $settingKeys');
+        $this->assertArrayHasKey('code_head', $keys, 'SiteSettingsFormState::KEYS must include code_head');
+        $this->assertArrayHasKey('code_body_start', $keys, 'SiteSettingsFormState::KEYS must include code_body_start');
+        $this->assertArrayHasKey('code_body_end', $keys, 'SiteSettingsFormState::KEYS must include code_body_end');
 
         $this->assertEquals('text', $keys['code_head']);
         $this->assertEquals('text', $keys['code_body_start']);

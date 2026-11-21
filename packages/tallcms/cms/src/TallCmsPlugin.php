@@ -44,8 +44,6 @@ class TallCmsPlugin implements Plugin
 
     protected bool $hasUsers = true;
 
-    protected bool $hasSiteSettings = true;
-
     protected bool $hasGlobalDefaults = true;
 
     protected bool $hasSeoSettings = true;
@@ -349,16 +347,6 @@ class TallCmsPlugin implements Plugin
      */
     public function withoutCodeInjection(): static
     {
-        return $this;
-    }
-
-    /**
-     * Disable site settings resource.
-     */
-    public function withoutSiteSettings(): static
-    {
-        $this->hasSiteSettings = false;
-
         return $this;
     }
 

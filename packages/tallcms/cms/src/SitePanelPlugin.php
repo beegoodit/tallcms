@@ -10,6 +10,7 @@ use TallCms\Cms\Filament\Concerns\RegistersTranslatablePlugin;
 use TallCms\Cms\Filament\Concerns\TogglesContentResources;
 use TallCms\Cms\Filament\Pages\MenuItemsManager;
 use TallCms\Cms\Filament\Pages\SiteDashboard;
+use TallCms\Cms\Filament\Pages\SiteSettings;
 use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
 use TallCms\Cms\Filament\Resources\TallcmsContactSubmissions\TallcmsContactSubmissionResource;
 use TallCms\Cms\Filament\Resources\TallcmsMenus\TallcmsMenuResource;
@@ -64,6 +65,10 @@ class SitePanelPlugin implements Plugin
 
         if ($this->hasMenus) {
             $pages[] = MenuItemsManager::class;
+        }
+
+        if ($this->hasSiteSettings) {
+            $pages[] = SiteSettings::class;
         }
 
         return $pages;

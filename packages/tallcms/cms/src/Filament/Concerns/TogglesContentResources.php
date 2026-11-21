@@ -25,6 +25,8 @@ trait TogglesContentResources
 
     protected bool $hasMenus = true;
 
+    protected bool $hasSiteSettings = true;
+
     /**
      * Disable categories resource.
      */
@@ -91,6 +93,17 @@ trait TogglesContentResources
     public function withoutMenus(): static
     {
         $this->hasMenus = false;
+
+        return $this;
+    }
+
+    /**
+     * Disable site settings: the Site resource on TallCmsPlugin, the site
+     * settings page in the site panel.
+     */
+    public function withoutSiteSettings(): static
+    {
+        $this->hasSiteSettings = false;
 
         return $this;
     }
