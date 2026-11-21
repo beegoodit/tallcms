@@ -150,11 +150,12 @@ class PreviewController extends Controller
     }
 
     /**
-     * Logged-in previews show drafts, so only to users who may view that
-     * kind of content and may open its site (SiteAccess; without multisite
-     * every site). Content without a site (the multisite plugin's user-owned
-     * posts in /admin) goes by its policy: the owner or a super admin.
-     * Share links (tokenPreview) are meant for anyone holding the token.
+     * Logged-in previews show drafts, so only to users who may see the
+     * record: whoever its policy lets view it (outside a site panel that is
+     * /admin's rule: the owner, the site's owner, a super admin), or whoever
+     * may view that kind of content and may open its site (SiteAccess: the
+     * site panel's users, e.g. team members). Share links (tokenPreview) are
+     * meant for anyone holding the token.
      */
     protected function ensureSiteAccess(Model $content): void
     {
@@ -162,16 +163,17 @@ class PreviewController extends Controller
 
         abort_unless($user !== null, 404);
 
-        $site = $content->getAttribute('site_id') !== null ? $content->site : null;
+        $gate = Gate::forUser($user);
 
-        if ($site === null) {
-            abort_unless(Gate::forUser($user)->allows('view', $content), 404);
-
+        if ($gate->allows('view', $content)) {
             return;
         }
 
+        $site = $content->getAttribute('site_id') !== null ? $content->site : null;
+
         abort_unless(
-            Gate::forUser($user)->allows('View:'.class_basename($content))
+            $site !== null
+                && $gate->allows('View:'.class_basename($content))
                 && app(SiteAccess::class)->canAccess($user, $site),
             404,
         );
