@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Models\CmsPage;
@@ -149,20 +150,30 @@ class PreviewController extends Controller
     }
 
     /**
-     * Logged-in previews show drafts, so only to users who may open the
-     * content's site (SiteAccess; without multisite every site). Share links
-     * (tokenPreview) are meant for anyone holding the token.
+     * Logged-in previews show drafts, so only to users who may view that
+     * kind of content and may open its site (SiteAccess; without multisite
+     * every site). Content without a site (the multisite plugin's user-owned
+     * posts in /admin) goes by its policy: the owner or a super admin.
+     * Share links (tokenPreview) are meant for anyone holding the token.
      */
     protected function ensureSiteAccess(Model $content): void
     {
+        $user = auth(config('tallcms.auth.guard', 'web'))->user();
+
+        abort_unless($user !== null, 404);
+
         $site = $content->getAttribute('site_id') !== null ? $content->site : null;
 
         if ($site === null) {
+            abort_unless(Gate::forUser($user)->allows('view', $content), 404);
+
             return;
         }
 
-        $user = auth(config('tallcms.auth.guard', 'web'))->user();
-
-        abort_unless($user !== null && app(SiteAccess::class)->canAccess($user, $site), 404);
+        abort_unless(
+            Gate::forUser($user)->allows('View:'.class_basename($content))
+                && app(SiteAccess::class)->canAccess($user, $site),
+            404,
+        );
     }
 }
