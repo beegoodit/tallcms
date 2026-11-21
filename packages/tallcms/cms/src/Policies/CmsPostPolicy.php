@@ -61,7 +61,7 @@ class CmsPostPolicy
 
     public function replicate(Authenticatable $user, CmsPost $cmsPost): bool
     {
-        return $user->can('Replicate:CmsPost');
+        return $user->can('Replicate:CmsPost') && $this->ownsOrSuperAdmin($user, $cmsPost);
     }
 
     public function reorder(Authenticatable $user): bool
@@ -70,11 +70,16 @@ class CmsPostPolicy
     }
 
     /**
-     * Determine if the user can approve the post (publish pending content)
+     * Determine if the user can approve the post (publish pending content).
+     *
+     * The approver of a review is usually not the author, so authorship does
+     * not count here; a post with an owner (user_id, set by the multisite
+     * plugin) is approved by that owner or a super admin, and in a site
+     * panel by whoever may approve there, for the tenant's posts.
      */
     public function approve(Authenticatable $user, CmsPost $cmsPost): bool
     {
-        return $user->can('Approve:CmsPost') && $cmsPost->canBeApproved();
+        return $user->can('Approve:CmsPost') && $cmsPost->canBeApproved() && ! $this->belongsToSomeoneElse($user, $cmsPost);
     }
 
     /**
@@ -82,7 +87,7 @@ class CmsPostPolicy
      */
     public function submitForReview(Authenticatable $user, CmsPost $cmsPost): bool
     {
-        return $user->can('SubmitForReview:CmsPost') && $cmsPost->canSubmitForReview();
+        return $user->can('SubmitForReview:CmsPost') && $cmsPost->canSubmitForReview() && $this->ownsOrSuperAdmin($user, $cmsPost);
     }
 
     /**
@@ -90,7 +95,7 @@ class CmsPostPolicy
      */
     public function viewRevisions(Authenticatable $user, CmsPost $cmsPost): bool
     {
-        return $user->can('ViewRevisions:CmsPost');
+        return $user->can('ViewRevisions:CmsPost') && $this->ownsOrSuperAdmin($user, $cmsPost);
     }
 
     /**
@@ -98,7 +103,7 @@ class CmsPostPolicy
      */
     public function restoreRevision(Authenticatable $user, CmsPost $cmsPost): bool
     {
-        return $user->can('RestoreRevision:CmsPost');
+        return $user->can('RestoreRevision:CmsPost') && $this->ownsOrSuperAdmin($user, $cmsPost);
     }
 
     /**
@@ -107,6 +112,27 @@ class CmsPostPolicy
     public function generatePreviewLink(Authenticatable $user, CmsPost $cmsPost): bool
     {
         return $user->can('GeneratePreviewLink:CmsPost') && $this->ownsOrSuperAdmin($user, $cmsPost);
+    }
+
+    /**
+     * Whether the post is out of reach for approving: in a site panel a post
+     * of another site; elsewhere a post with an owner (user_id) who is not
+     * this user. False for super admins and for posts without an owner.
+     */
+    protected function belongsToSomeoneElse(Authenticatable $user, CmsPost $cmsPost): bool
+    {
+        $inTenantSite = $this->recordIsInTenantSite($cmsPost->site_id === null ? null : (int) $cmsPost->site_id);
+        if ($inTenantSite !== null) {
+            return ! $inTenantSite;
+        }
+
+        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
+            return false;
+        }
+
+        return isset($cmsPost->user_id)
+            && $cmsPost->user_id !== null
+            && (int) $cmsPost->user_id !== (int) $user->getAuthIdentifier();
     }
 
     /**

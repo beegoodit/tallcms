@@ -61,7 +61,7 @@ class CmsCategoryPolicy
 
     public function replicate(Authenticatable $user, CmsCategory $cmsCategory): bool
     {
-        return $user->can('Replicate:CmsCategory');
+        return $user->can('Replicate:CmsCategory') && $this->ownsOrSuperAdmin($user, $cmsCategory);
     }
 
     public function reorder(Authenticatable $user): bool

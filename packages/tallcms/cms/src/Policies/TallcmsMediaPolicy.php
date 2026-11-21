@@ -61,7 +61,7 @@ class TallcmsMediaPolicy
 
     public function replicate(Authenticatable $user, TallcmsMedia $tallcmsMedia): bool
     {
-        return $user->can('Replicate:TallcmsMedia');
+        return $user->can('Replicate:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $tallcmsMedia);
     }
 
     public function reorder(Authenticatable $user): bool
