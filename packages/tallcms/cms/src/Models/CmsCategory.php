@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use TallCms\Cms\Models\Concerns\BelongsToSite;
 use TallCms\Cms\Models\Concerns\HasTranslatableContent;
+use TallCms\Cms\Support\TranslatableJson;
 
 class CmsCategory extends Model
 {
@@ -78,13 +79,7 @@ class CmsCategory extends Model
         // Slug is stored as JSON (translatable), so use JSON query
         // This works regardless of whether i18n is enabled
         $locale = config('app.locale', 'en');
-        $driver = $query->getConnection()->getDriverName();
-
-        return match ($driver) {
-            'sqlite' => $query->whereRaw("JSON_EXTRACT(slug, '$.{$locale}') = ?", [$slug]),
-            'pgsql' => $query->whereRaw("slug::jsonb ->> ? = ?", [$locale, $slug]),
-            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(slug, '$.\"" . $locale . "\"')) = ?", [$slug]),
-        };
+        return TranslatableJson::whereLocale($query, 'slug', $locale, $slug);
     }
 
     public function getRouteKeyName(): string
@@ -146,13 +141,7 @@ class CmsCategory extends Model
     {
         $locale = config('app.locale', 'en');
         $query = static::query();
-        $driver = $query->getConnection()->getDriverName();
-
-        match ($driver) {
-            'sqlite' => $query->whereRaw("JSON_EXTRACT(slug, '$.{$locale}') = ?", [$slug]),
-            'pgsql' => $query->whereRaw("slug::jsonb ->> ? = ?", [$locale, $slug]),
-            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(slug, '$.\"" . $locale . "\"')) = ?", [$slug]),
-        };
+        TranslatableJson::whereLocale($query, 'slug', $locale, $slug);
 
         if ($this->exists) {
             $query->where('id', '!=', $this->id);

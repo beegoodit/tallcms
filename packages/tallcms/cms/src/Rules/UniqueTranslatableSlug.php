@@ -7,6 +7,8 @@ namespace TallCms\Cms\Rules;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\DB;
+use TallCms\Cms\Services\LocaleRegistry;
+use TallCms\Cms\Support\TranslatableJson;
 
 /**
  * Validation rule for per-locale slug uniqueness.
@@ -47,25 +49,14 @@ class UniqueTranslatableSlug implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $driver = DB::getDriverName();
+        // The language can come from the browser (the editor's active locale).
+        if (! $this->isAvailableLocale()) {
+            $fail('This language is not available.');
 
-        // Build database-agnostic JSON query
-        $query = DB::table($this->table);
-
-        switch ($driver) {
-            case 'sqlite':
-                $query->whereRaw("JSON_EXTRACT({$this->column}, '$.{$this->locale}') = ?", [$value]);
-                break;
-
-            case 'pgsql':
-                // PostgreSQL: cast to jsonb and use ->> for text extraction
-                $query->whereRaw("{$this->column}::jsonb ->> ? = ?", [$this->locale, $value]);
-                break;
-
-            default:
-                // MySQL/MariaDB
-                $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT({$this->column}, '$.\"".$this->locale."\"')) = ?", [$value]);
+            return;
         }
+
+        $query = TranslatableJson::whereLocale(DB::table($this->table), $this->column, $this->locale, $value);
 
         if ($this->ignoreId) {
             $query->where('id', '!=', $this->ignoreId);
@@ -94,6 +85,28 @@ class UniqueTranslatableSlug implements ValidationRule
         if ($query->exists()) {
             $fail("This slug is already used by another item in {$this->locale}.");
         }
+    }
+
+    /**
+     * A configured language, or the application's own (installs without
+     * i18n store their content under it).
+     */
+    protected function isAvailableLocale(): bool
+    {
+        if (! TranslatableJson::isLocaleCode($this->locale)) {
+            return false;
+        }
+
+        if (app(LocaleRegistry::class)->isValidLocale($this->locale)) {
+            return true;
+        }
+
+        $own = array_map(
+            fn (?string $locale): string => LocaleRegistry::normalizeLocaleCode((string) $locale),
+            [app()->getLocale(), config('app.locale'), config('app.fallback_locale')],
+        );
+
+        return in_array(LocaleRegistry::normalizeLocaleCode($this->locale), $own, true);
     }
 
     /**

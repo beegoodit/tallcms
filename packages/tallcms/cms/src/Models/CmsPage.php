@@ -24,6 +24,7 @@ use TallCms\Cms\Models\Concerns\HasSearchableContent;
 use TallCms\Cms\Models\Concerns\HasTranslatableContent;
 use TallCms\Cms\Services\CustomBlockDiscoveryService;
 use TallCms\Cms\Support\MenuCache;
+use TallCms\Cms\Support\TranslatableJson;
 
 class CmsPage extends Model implements HasRichContent
 {
@@ -308,13 +309,7 @@ class CmsPage extends Model implements HasRichContent
         // Slug is stored as JSON (translatable), so use JSON query
         // This works regardless of whether i18n is enabled
         $locale = config('app.locale', 'en');
-        $driver = $query->getConnection()->getDriverName();
-
-        return match ($driver) {
-            'sqlite' => $query->whereRaw("JSON_EXTRACT(slug, '$.{$locale}') = ?", [$slug]),
-            'pgsql' => $query->whereRaw('slug::jsonb ->> ? = ?', [$locale, $slug]),
-            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(slug, '$.\"".$locale."\"')) = ?", [$slug]),
-        };
+        return TranslatableJson::whereLocale($query, 'slug', $locale, $slug);
     }
 
     public function getRouteKeyName(): string
@@ -408,13 +403,7 @@ class CmsPage extends Model implements HasRichContent
     {
         $locale = config('app.locale', 'en');
         $query = static::query();
-        $driver = $query->getConnection()->getDriverName();
-
-        match ($driver) {
-            'sqlite' => $query->whereRaw("JSON_EXTRACT(slug, '$.{$locale}') = ?", [$slug]),
-            'pgsql' => $query->whereRaw('slug::jsonb ->> ? = ?', [$locale, $slug]),
-            default => $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(slug, '$.\"".$locale."\"')) = ?", [$slug]),
-        };
+        TranslatableJson::whereLocale($query, 'slug', $locale, $slug);
 
         if ($this->exists) {
             $query->where('id', '!=', $this->id);
