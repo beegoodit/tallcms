@@ -6,6 +6,7 @@ namespace TallCms\Cms\Filament\Pages;
 
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
@@ -81,6 +82,37 @@ class SiteTheme extends ThemeManager
     }
 
     public function refreshLicenseStatus(string $licenseSlug): void {}
+
+    /**
+     * The theme cache belongs to the installation.
+     */
+    public function refreshThemes(): void {}
+
+    /**
+     * Whether a theme is licensed, for the "licence required" hint; the key,
+     * the licensed domain, expiry and download links stay in /admin.
+     */
+    protected function refreshLicenseStatuses(): void
+    {
+        parent::refreshLicenseStatuses();
+
+        $this->licenseStatuses = array_map(
+            fn (array $status): array => Arr::only($status, ['has_license', 'is_valid', 'status', 'status_label', 'status_color']),
+            $this->licenseStatuses,
+        );
+    }
+
+    /**
+     * Without the theme's path on the server.
+     */
+    public function showThemeDetails(string $slug): void
+    {
+        parent::showThemeDetails($slug);
+
+        if ($this->themeDetails !== null) {
+            $this->themeDetails['path'] = null;
+        }
+    }
 
     public function deleteAction(): Action
     {
