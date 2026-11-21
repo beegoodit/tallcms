@@ -79,7 +79,9 @@ class SiteSettings extends Page implements HasForms
         $data = $this->form->getState();
         $site = $this->site();
 
-        $site->update(['locale' => $data['locale'] ?? null]);
+        if (filled($data['locale'] ?? null)) {
+            $site->update(['locale' => $data['locale']]);
+        }
         app(SiteSettingsFormState::class)->save((int) $site->getKey(), $data);
 
         Notification::make()
@@ -97,7 +99,7 @@ class SiteSettings extends Page implements HasForms
     protected function getFormSchema(): array
     {
         return [
-            Tabs::make('Site Settings')
+            Tabs::make(tallcms_label('site_settings', 'navigation'))
                 ->tabs([
                     SiteForm::settingsGeneralTab(),
                     SiteForm::brandingTab(),

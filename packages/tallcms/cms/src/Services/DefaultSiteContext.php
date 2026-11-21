@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace TallCms\Cms\Services;
 
 use Filament\Facades\Filament;
+use Illuminate\Database\QueryException;
 use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Models\Site;
 
@@ -53,7 +54,8 @@ class DefaultSiteContext implements SiteContext
 
         try {
             $id = Site::query()->where('is_default', true)->value('id');
-        } catch (\Throwable) {
+        } catch (QueryException) {
+            // The sites table is not there yet (installer, before migrations).
             return null;
         }
 
