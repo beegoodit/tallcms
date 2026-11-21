@@ -50,8 +50,6 @@ class TallCmsPlugin implements Plugin
 
     protected bool $hasPluginManager = true;
 
-    protected bool $hasThemeManager = true;
-
     protected bool $hasSystemUpdates = true;
 
     protected bool $hasShieldPlugin = true;
@@ -376,16 +374,6 @@ class TallCmsPlugin implements Plugin
     public function withoutPluginManager(): static
     {
         $this->hasPluginManager = false;
-
-        return $this;
-    }
-
-    /**
-     * Disable theme manager page.
-     */
-    public function withoutThemeManager(): static
-    {
-        $this->hasThemeManager = false;
 
         return $this;
     }

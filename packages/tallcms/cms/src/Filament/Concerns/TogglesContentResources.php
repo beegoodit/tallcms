@@ -27,6 +27,8 @@ trait TogglesContentResources
 
     protected bool $hasSiteSettings = true;
 
+    protected bool $hasThemeManager = true;
+
     /**
      * Disable categories resource.
      */
@@ -104,6 +106,17 @@ trait TogglesContentResources
     public function withoutSiteSettings(): static
     {
         $this->hasSiteSettings = false;
+
+        return $this;
+    }
+
+    /**
+     * Disable themes: the theme manager on TallCmsPlugin, the site's theme
+     * page in the site panel.
+     */
+    public function withoutThemeManager(): static
+    {
+        $this->hasThemeManager = false;
 
         return $this;
     }

@@ -11,6 +11,7 @@ use TallCms\Cms\Filament\Concerns\TogglesContentResources;
 use TallCms\Cms\Filament\Pages\MenuItemsManager;
 use TallCms\Cms\Filament\Pages\SiteDashboard;
 use TallCms\Cms\Filament\Pages\SiteSettings;
+use TallCms\Cms\Filament\Pages\SiteTheme;
 use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
 use TallCms\Cms\Filament\Resources\TallcmsContactSubmissions\TallcmsContactSubmissionResource;
 use TallCms\Cms\Filament\Resources\TallcmsMenus\TallcmsMenuResource;
@@ -69,6 +70,10 @@ class SitePanelPlugin implements Plugin
 
         if ($this->hasSiteSettings) {
             $pages[] = SiteSettings::class;
+        }
+
+        if ($this->hasThemeManager && config('tallcms.plugin_mode.themes_enabled', true)) {
+            $pages[] = SiteTheme::class;
         }
 
         return $pages;

@@ -408,6 +408,7 @@ return [
     't_number_of_posts_to_show_per_page' => 'Anzahl Beiträge pro Seite',
     't_only_applies_to_accordion_style' => 'Gilt nur für Akkordeon-Stil',
     't_only_super_admins_can_activate_theme_licenses' => 'Nur Superadministratoren können Theme-Lizenzen aktivieren.',
+    't_only_super_admins_can_change_the_installation_theme' => 'Nur Superadministratoren können das Theme der gesamten Installation ändern.',
     't_only_super_admins_can_deactivate_theme_licenses' => 'Nur Superadministratoren können Theme-Lizenzen deaktivieren.',
     't_only_super_admins_can_delete_themes' => 'Nur Superadministratoren können Themen löschen.',
     't_only_super_admins_can_refresh_theme_license_status' => 'Nur Superadministratoren können den Theme-Lizenzstatus aktualisieren.',

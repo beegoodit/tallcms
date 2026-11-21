@@ -15,6 +15,10 @@ return [
         'navigation' => 'Themes',
         'title' => 'Theme-Verwaltung',
     ],
+    'site_theme' => [
+        'navigation' => 'Theme',
+        'title' => 'Theme',
+    ],
     'plugin_manager' => [
         'navigation' => 'Plugins',
         'title' => 'Plugin-Verwaltung',

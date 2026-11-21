@@ -24,6 +24,7 @@ use TallCms\Cms\Models\Theme;
 use TallCms\Cms\Services\MarketplaceCatalogService;
 use TallCms\Cms\Services\PluginLicenseService;
 use TallCms\Cms\Services\SiteSettingsService;
+use TallCms\Cms\Services\SiteThemeActivator;
 use TallCms\Cms\Services\ThemeManager as ThemeManagerService;
 use TallCms\Cms\Services\ThemeValidator;
 
@@ -99,16 +100,34 @@ class ThemeManager extends Page implements HasForms
 
     public function updatedShowThemeSwitcher(bool $value): void
     {
+        if ($this->refusesInstallationWideChange()) {
+            $this->showThemeSwitcher = ! $value;
+
+            return;
+        }
+
         $this->writeScopedSetting('show_theme_switcher', $value, 'boolean', 'branding');
     }
 
     public function updatedShowSearch(bool $value): void
     {
+        if ($this->refusesInstallationWideChange()) {
+            $this->showSearch = ! $value;
+
+            return;
+        }
+
         $this->writeScopedSetting('show_search', $value, 'boolean', 'branding');
     }
 
     public function updatedShowLanguageDropdown(bool $value): void
     {
+        if ($this->refusesInstallationWideChange()) {
+            $this->showLanguageDropdown = ! $value;
+
+            return;
+        }
+
         $this->writeScopedSetting('show_language_dropdown', $value, 'boolean', 'branding');
     }
 
@@ -181,6 +200,57 @@ class ThemeManager extends Page implements HasForms
     protected function multisiteResolverIsBound(): bool
     {
         return app()->bound('tallcms.multisite.resolver');
+    }
+
+    /**
+     * Whether the user may change the theme shown here: a site's theme when a
+     * site is in context, the installation's theme otherwise. With Multisite,
+     * the installation's theme and the global settings are super_admin only.
+     */
+    public function canChangeTheme(): bool
+    {
+        if ($this->getMultisiteContext() || ! $this->multisiteResolverIsBound()) {
+            return true;
+        }
+
+        $user = auth()->user();
+
+        return $user && method_exists($user, 'hasRole') && $user->hasRole('super_admin');
+    }
+
+    /**
+     * Whether the page offers what concerns the installation: marketplace,
+     * theme deletion and licences (each still super_admin only).
+     */
+    public function managesInstallation(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Where "Visit site" leads.
+     */
+    public function visitSiteUrl(): string
+    {
+        return url('/');
+    }
+
+    /**
+     * Server-side side of canChangeTheme(): refuse with a notification.
+     */
+    protected function refusesInstallationWideChange(): bool
+    {
+        if ($this->canChangeTheme()) {
+            return false;
+        }
+
+        Notification::make()
+            ->title(__('tallcms::ui.t_not_authorized'))
+            ->body(__('tallcms::ui.t_only_super_admins_can_change_the_installation_theme'))
+            ->danger()
+            ->send();
+
+        return true;
     }
 
     /**
@@ -563,7 +633,7 @@ class ThemeManager extends Page implements HasForms
      */
     public function canRollback(): bool
     {
-        if ($this->getMultisiteContext()) {
+        if ($this->getMultisiteContext() || ! $this->canChangeTheme()) {
             return false;
         }
 
@@ -621,25 +691,13 @@ class ThemeManager extends Page implements HasForms
 
         $context = $this->getMultisiteContext();
 
+        if (! $context && $this->refusesInstallationWideChange()) {
+            return;
+        }
+
         if ($context) {
-            // Per-site: update the site's theme column
-            DB::table('tallcms_sites')
-                ->where('id', $context->id)
-                ->update(['theme' => $slug, 'updated_at' => now()]);
-
-            // Run essential activation steps (same as setActiveTheme minus config file write)
-            $manager = $this->getThemeManager();
-            $manager->publishThemeAssets($theme);
-
-            // Clear compiled views to prevent stale cached templates
-            $compiledViewPath = config('view.compiled');
-            if ($compiledViewPath && File::isDirectory($compiledViewPath)) {
-                foreach (File::glob($compiledViewPath.'/*.php') as $view) {
-                    File::delete($view);
-                }
-            }
-
-            $this->writeScopedSetting('theme_default_preset', '', 'text', 'theme', 'Default daisyUI preset for the active theme');
+            // Per-site: the site's theme column (no config file write, no rollback)
+            app(SiteThemeActivator::class)->activate((int) $context->id, $theme);
 
             Notification::make()
                 ->title(__('tallcms::ui.t_site_theme_updated'))
@@ -673,6 +731,10 @@ class ThemeManager extends Page implements HasForms
      */
     public function rollbackTheme(): void
     {
+        if ($this->getMultisiteContext() || $this->refusesInstallationWideChange()) {
+            return;
+        }
+
         $rollbackSlug = $this->getRollbackSlug();
 
         if (! $rollbackSlug) {
@@ -777,7 +839,15 @@ class ThemeManager extends Page implements HasForms
             return;
         }
 
-        $this->writeScopedSetting('theme_default_preset', $preset, 'text', 'theme', 'Default daisyUI preset for the active theme');
+        $context = $this->getMultisiteContext();
+
+        if ($context) {
+            app(SiteThemeActivator::class)->choosePreset((int) $context->id, $preset);
+        } elseif ($this->refusesInstallationWideChange()) {
+            return;
+        } else {
+            $this->writeScopedSetting('theme_default_preset', $preset, 'text', 'theme', 'Default daisyUI preset for the active theme');
+        }
 
         Notification::make()
             ->title(__('tallcms::ui.t_default_preset_updated'))

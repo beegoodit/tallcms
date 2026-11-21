@@ -408,6 +408,7 @@ return [
     't_number_of_posts_to_show_per_page' => 'Number of posts to show per page',
     't_only_applies_to_accordion_style' => 'Only applies to accordion style',
     't_only_super_admins_can_activate_theme_licenses' => 'Only super admins can activate theme licenses.',
+    't_only_super_admins_can_change_the_installation_theme' => 'Only super admins can change the theme of the whole installation.',
     't_only_super_admins_can_deactivate_theme_licenses' => 'Only super admins can deactivate theme licenses.',
     't_only_super_admins_can_delete_themes' => 'Only super admins can delete themes.',
     't_only_super_admins_can_refresh_theme_license_status' => 'Only super admins can refresh theme license status.',

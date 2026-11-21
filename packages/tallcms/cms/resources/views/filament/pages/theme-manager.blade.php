@@ -43,7 +43,7 @@
     @endif
 
     {{-- From the Marketplace --}}
-    @if($this->availableMarketplaceThemes->isNotEmpty())
+    @if($this->managesInstallation() && $this->availableMarketplaceThemes->isNotEmpty())
         <x-filament::section>
             <x-slot name="heading">
                 <div class="flex items-center justify-between">
@@ -217,7 +217,7 @@
                 {{-- Bottom row on mobile: controls --}}
                 <div class="flex flex-wrap items-center gap-2">
                     {{-- Default Preset Selector --}}
-                    @if($active['hasThemeController'] && !empty($active['presets']))
+                    @if($this->canChangeTheme() && $active['hasThemeController'] && !empty($active['presets']))
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('tallcms::ui.default_preset') }}</span>
                             <x-filament::input.wrapper class="!w-auto">
@@ -237,7 +237,7 @@
                     {{-- Quick links --}}
                     <x-filament::button
                         tag="a"
-                        href="{{ url('/') }}"
+                        href="{{ $this->visitSiteUrl() }}"
                         target="_blank"
                         color="gray"
                         size="xs"
@@ -478,15 +478,17 @@
                                 {{ __('tallcms::ui.preview') }}
                             </x-filament::button>
 
-                            <x-filament::button
-                                wire:click="activateTheme('{{ $theme['slug'] }}')"
-                                color="gray"
-                                size="xs"
-                                outlined
-                                :disabled="!$theme['meetsRequirements']"
-                            >
-                                Activate
-                            </x-filament::button>
+                            @if($this->canChangeTheme())
+                                <x-filament::button
+                                    wire:click="activateTheme('{{ $theme['slug'] }}')"
+                                    color="gray"
+                                    size="xs"
+                                    outlined
+                                    :disabled="!$theme['meetsRequirements']"
+                                >
+                                    Activate
+                                </x-filament::button>
+                            @endif
                         @else
                             <span class="text-xs text-primary-600 dark:text-primary-400 font-medium">
                                 Active
@@ -494,7 +496,7 @@
                         @endunless
 
                         {{-- License Actions --}}
-                        @if($theme['requiresLicense'])
+                        @if($theme['requiresLicense'] && $this->managesInstallation())
                             @if($theme['licenseStatus']['has_license'] ?? false)
                                 @if($theme['licenseStatus']['is_valid'] ?? false)
                                     <x-filament::button
@@ -793,25 +795,29 @@
                         >
                             {{ __('tallcms::ui.preview') }}
                         </x-filament::button>
-                        <x-filament::button
-                            wire:click="activateTheme('{{ $themeDetails['slug'] }}')"
-                            color="gray"
-                            size="sm"
-                            outlined
-                            :disabled="!$themeDetails['meetsRequirements']"
-                        >
-                            Activate Theme
-                        </x-filament::button>
-                        <x-filament::button
-                            wire:click="mountAction('delete', { slug: '{{ $themeDetails['slug'] }}', name: '{{ addslashes($themeDetails['name']) }}' })"
-                            color="danger"
-                            size="sm"
-                            outlined
-                        >
-                            Delete
-                        </x-filament::button>
+                        @if($this->canChangeTheme())
+                            <x-filament::button
+                                wire:click="activateTheme('{{ $themeDetails['slug'] }}')"
+                                color="gray"
+                                size="sm"
+                                outlined
+                                :disabled="!$themeDetails['meetsRequirements']"
+                            >
+                                Activate Theme
+                            </x-filament::button>
+                        @endif
+                        @if($this->managesInstallation())
+                            <x-filament::button
+                                wire:click="mountAction('delete', { slug: '{{ $themeDetails['slug'] }}', name: '{{ addslashes($themeDetails['name']) }}' })"
+                                color="danger"
+                                size="sm"
+                                outlined
+                            >
+                                Delete
+                            </x-filament::button>
+                        @endif
                     @endunless
-                    @if($themeDetails['requiresLicense'] ?? false)
+                    @if(($themeDetails['requiresLicense'] ?? false) && $this->managesInstallation())
                         @if(($themeDetails['licenseStatus']['has_license'] ?? false) && ($themeDetails['licenseStatus']['is_valid'] ?? false))
                             <x-filament::button
                                 wire:click="refreshLicenseStatus('{{ $themeDetails['licenseSlug'] }}')"
@@ -857,7 +863,7 @@
                 @endif
 
                 {{-- License Information --}}
-                @if($themeDetails['licenseStatus']['has_license'] ?? false)
+                @if(($themeDetails['licenseStatus']['has_license'] ?? false) && $this->managesInstallation())
                     <x-filament::section compact>
                         <x-slot name="heading">
                             <div class="flex items-center gap-2">
@@ -889,7 +895,7 @@
                             Last validated: {{ $themeDetails['licenseStatus']['last_validated'] ?? 'Never' }}
                         </p>
                     </x-filament::section>
-                @elseif($themeDetails['requiresLicense'] ?? false)
+                @elseif(($themeDetails['requiresLicense'] ?? false) && ! ($themeDetails['licenseStatus']['is_valid'] ?? false))
                     <x-filament::section compact class="!bg-warning-50 dark:!bg-warning-950 !border-warning-200 dark:!border-warning-800">
                         <x-slot name="heading">
                             <span class="text-warning-700 dark:text-warning-300">License Required</span>
@@ -965,7 +971,7 @@
                     $hasLangSupport = (bool) ($themeDetails['supports']['language_switcher'] ?? false);
                     $hasAnyDisplayOption = $themeDetails['hasThemeController'] || $hasSearchSupport || $hasLangSupport;
                 @endphp
-                @if($themeDetails['isActive'] && $hasAnyDisplayOption)
+                @if($themeDetails['isActive'] && $hasAnyDisplayOption && $this->canChangeTheme())
                     <div class="bg-gray-50 dark:bg-white/5 rounded-lg p-3">
                         <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Display Options</h4>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Show or hide controls in the site header. Saved automatically.</p>
