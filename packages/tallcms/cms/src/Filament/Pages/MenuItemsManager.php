@@ -3,6 +3,7 @@
 namespace TallCms\Cms\Filament\Pages;
 
 use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -233,7 +234,40 @@ class MenuItemsManager extends NestedsetPage
      */
     public function createAction(): CreateAction
     {
-        return parent::createAction()
+        return $this->configureItemCreation(parent::createAction());
+    }
+
+    /**
+     * "Create child node" in a row: the same rules as createAction. The
+     * package's own version takes menu_id from the active tab, which the
+     * client controls, without checking it.
+     */
+    public function createChildAction(): CreateAction
+    {
+        return $this->configureItemCreation(parent::createChildAction());
+    }
+
+    /**
+     * An item whose id is not in the tree query (unknown, or of a menu this
+     * page does not work on) is not found, instead of a null record.
+     */
+    public function deleteAction(): DeleteAction
+    {
+        return parent::deleteAction()
+            ->record(function (array $arguments): ?Model {
+                $id = $arguments['id'] ?? 0;
+
+                return $id ? $this->getQuery()->findOrFail($id) : null;
+            });
+    }
+
+    /**
+     * Creation of an item in the active tab's menu: the menu must be one of
+     * menusQuery(), and the label is stored for the active locale.
+     */
+    protected function configureItemCreation(CreateAction $action): CreateAction
+    {
+        return $action
             ->mutateFormDataUsing(function (array $data): array {
                 // Store label as translation for current locale
                 if (isset($data['label']) && tallcms_i18n_enabled()) {
