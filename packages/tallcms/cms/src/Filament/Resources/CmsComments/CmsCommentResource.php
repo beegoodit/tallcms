@@ -6,11 +6,13 @@ use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Filament\Resources\CmsComments\Pages\ListCmsComments;
 use TallCms\Cms\Filament\Resources\CmsComments\Pages\ViewCmsComment;
 use TallCms\Cms\Filament\Resources\CmsComments\Tables\CmsCommentsTable;
 use TallCms\Cms\Filament\Resources\Concerns\ScopesQueryToOwnedSites;
 use TallCms\Cms\Models\CmsComment;
+use TallCms\Cms\Support\RequestMemo;
 
 class CmsCommentResource extends Resource
 {
@@ -91,12 +93,20 @@ class CmsCommentResource extends Resource
         return static::pendingCount() ? 'warning' : 'gray';
     }
 
+    /**
+     * Counted once per request and tenant: the navigation asks for the badge
+     * and for its colour.
+     */
     protected static function pendingCount(): ?int
     {
-        try {
-            return static::scopeQueryToOwnedSites(static::getModel()::pending())->count();
-        } catch (\Throwable) {
-            return null;
-        }
+        $key = static::class.'.pendingCount.'.(app(SiteContext::class)->tenantSiteId() ?? 'all').'.'.(auth()->id() ?? 'guest');
+
+        return RequestMemo::remember($key, function (): ?int {
+            try {
+                return static::scopeQueryToOwnedSites(static::getModel()::pending())->count();
+            } catch (\Throwable) {
+                return null;
+            }
+        });
     }
 }

@@ -62,20 +62,10 @@ class UserOwnership
 
         $table = $query->getModel()->getTable();
 
-        if (! static::hasSiteIdColumn($table)) {
+        if (! Schema::hasColumn($table, 'site_id')) {
             return $query;
         }
 
         return $query->where($table.'.site_id', $tenantSiteId);
-    }
-
-    /**
-     * @var array<string, bool>
-     */
-    protected static array $siteIdColumns = [];
-
-    protected static function hasSiteIdColumn(string $table): bool
-    {
-        return static::$siteIdColumns[$table] ??= Schema::hasColumn($table, 'site_id');
     }
 }

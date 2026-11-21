@@ -5,11 +5,13 @@ namespace TallCms\Cms\Filament\Resources\TallcmsContactSubmissions;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Filament\Resources\Concerns\ScopesQueryToOwnedSites;
 use TallCms\Cms\Filament\Resources\TallcmsContactSubmissions\Pages\ListTallcmsContactSubmissions;
 use TallCms\Cms\Filament\Resources\TallcmsContactSubmissions\Pages\ViewTallcmsContactSubmission;
 use TallCms\Cms\Filament\Resources\TallcmsContactSubmissions\Tables\TallcmsContactSubmissionsTable;
 use TallCms\Cms\Models\TallcmsContactSubmission;
+use TallCms\Cms\Support\RequestMemo;
 
 class TallcmsContactSubmissionResource extends Resource
 {
@@ -85,12 +87,20 @@ class TallcmsContactSubmissionResource extends Resource
         return static::unreadCount() ? 'warning' : 'gray';
     }
 
+    /**
+     * Counted once per request and tenant: the navigation asks for the badge
+     * and for its colour.
+     */
     protected static function unreadCount(): ?int
     {
-        try {
-            return static::scopeQueryToOwnedSites(static::getModel()::unread())->count();
-        } catch (\Throwable) {
-            return null;
-        }
+        $key = static::class.'.unreadCount.'.(app(SiteContext::class)->tenantSiteId() ?? 'all').'.'.(auth()->id() ?? 'guest');
+
+        return RequestMemo::remember($key, function (): ?int {
+            try {
+                return static::scopeQueryToOwnedSites(static::getModel()::unread())->count();
+            } catch (\Throwable) {
+                return null;
+            }
+        });
     }
 }
