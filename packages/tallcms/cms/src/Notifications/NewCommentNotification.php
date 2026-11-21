@@ -8,7 +8,9 @@ use Filament\Actions\Action as FilamentAction;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use TallCms\Cms\Filament\Resources\CmsComments\CmsCommentResource;
 use TallCms\Cms\Models\CmsComment;
+use TallCms\Cms\Services\SitePanelUrls;
 
 class NewCommentNotification extends Notification
 {
@@ -32,7 +34,7 @@ class NewCommentNotification extends Notification
             ->line("{$authorName} has left a new comment on \"{$postTitle}\".")
             ->line('**Comment:**')
             ->line(\Illuminate\Support\Str::limit($this->comment->content, 200))
-            ->action('Review Comment', $this->getViewUrl())
+            ->action('Review Comment', $this->getViewUrl($notifiable))
             ->line('Please review and approve or reject this comment.');
     }
 
@@ -52,14 +54,20 @@ class NewCommentNotification extends Notification
             ->actions([
                 FilamentAction::make('review')
                     ->label(__('tallcms::ui.t_review'))
-                    ->url($this->getViewUrl())
+                    ->url($this->getViewUrl($notifiable))
                     ->markAsRead(),
             ])
             ->getDatabaseMessage();
     }
 
-    protected function getViewUrl(): string
+    protected function getViewUrl(?object $notifiable = null): string
     {
+        // The site panel of the comment's site, for a recipient who may open it
+        $sitePanelUrl = app(SitePanelUrls::class)->resource(CmsCommentResource::class, 'view', $this->comment, $notifiable);
+        if ($sitePanelUrl) {
+            return $sitePanelUrl;
+        }
+
         $panelId = config('tallcms.filament.panel_id', 'admin');
 
         return route("filament.{$panelId}.resources.cms-comments.view", $this->comment);

@@ -12,6 +12,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use TallCms\Cms\Models\CmsPage;
 use TallCms\Cms\Models\CmsPost;
+use TallCms\Cms\Services\SitePanelUrls;
 
 class ContentSubmittedForReviewNotification extends Notification
 {
@@ -51,7 +52,7 @@ class ContentSubmittedForReviewNotification extends Notification
 
         return $mail
             ->line("**Title:** {$this->content->title}")
-            ->action('Review Content', $this->getEditUrl())
+            ->action('Review Content', $this->getEditUrl($notifiable))
             ->line('Please review and approve or reject this content.');
     }
 
@@ -80,7 +81,7 @@ class ContentSubmittedForReviewNotification extends Notification
             ->actions([
                 FilamentAction::make('review')
                     ->label(__('tallcms::ui.t_review'))
-                    ->url($this->getEditUrl())
+                    ->url($this->getEditUrl($notifiable))
                     ->markAsRead(),
             ])
             ->getDatabaseMessage();
@@ -137,8 +138,14 @@ class ContentSubmittedForReviewNotification extends Notification
     /**
      * Get the edit URL for this content
      */
-    protected function getEditUrl(): string
+    protected function getEditUrl(?object $notifiable = null): string
     {
+        // The site panel of the content's site, for a recipient who may open it
+        $sitePanelUrl = app(SitePanelUrls::class)->editContent($this->content, $notifiable);
+        if ($sitePanelUrl) {
+            return $sitePanelUrl;
+        }
+
         $panelId = config('tallcms.filament.panel_id', 'admin');
         $url = null;
 

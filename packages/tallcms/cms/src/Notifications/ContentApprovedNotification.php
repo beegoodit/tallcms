@@ -11,6 +11,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use TallCms\Cms\Models\CmsPage;
 use TallCms\Cms\Models\CmsPost;
+use TallCms\Cms\Services\SitePanelUrls;
 
 class ContentApprovedNotification extends Notification
 {
@@ -48,7 +49,7 @@ class ContentApprovedNotification extends Notification
         }
 
         // Use frontend URL for published content, admin URL if scheduled
-        $actionUrl = $isScheduled ? $this->getViewUrl() : $this->getFrontendUrl();
+        $actionUrl = $isScheduled ? $this->getViewUrl($notifiable) : $this->getFrontendUrl();
         $actionLabel = $isScheduled ? 'View in Admin' : 'View Live';
 
         return $message
@@ -70,7 +71,7 @@ class ContentApprovedNotification extends Notification
             : 'Your content is now live!';
 
         // Use frontend URL for published content, admin URL if scheduled
-        $actionUrl = $isScheduled ? $this->getViewUrl() : $this->getFrontendUrl();
+        $actionUrl = $isScheduled ? $this->getViewUrl($notifiable) : $this->getFrontendUrl();
         $actionLabel = $isScheduled ? 'View in Admin' : 'View Live';
 
         return FilamentNotification::make()
@@ -141,8 +142,14 @@ class ContentApprovedNotification extends Notification
     /**
      * Get the view URL for this content (admin edit page)
      */
-    protected function getViewUrl(): string
+    protected function getViewUrl(?object $notifiable = null): string
     {
+        // The site panel of the content's site, for a recipient who may open it
+        $sitePanelUrl = app(SitePanelUrls::class)->editContent($this->content, $notifiable);
+        if ($sitePanelUrl) {
+            return $sitePanelUrl;
+        }
+
         $panelId = config('tallcms.filament.panel_id', 'admin');
 
         if ($this->content instanceof CmsPost) {

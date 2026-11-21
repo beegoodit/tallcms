@@ -11,6 +11,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use TallCms\Cms\Models\CmsPage;
 use TallCms\Cms\Models\CmsPost;
+use TallCms\Cms\Services\SitePanelUrls;
 
 class ContentRejectedNotification extends Notification
 {
@@ -41,7 +42,7 @@ class ContentRejectedNotification extends Notification
             ->line("**Title:** {$this->content->title}")
             ->line('**Reason for rejection:**')
             ->line($this->reason)
-            ->action('Edit Content', $this->getEditUrl())
+            ->action('Edit Content', $this->getEditUrl($notifiable))
             ->line('Please address the feedback and resubmit for review.');
     }
 
@@ -63,7 +64,7 @@ class ContentRejectedNotification extends Notification
             ->actions([
                 FilamentAction::make('edit')
                     ->label(__('tallcms::fields.edit'))
-                    ->url($this->getEditUrl())
+                    ->url($this->getEditUrl($notifiable))
                     ->markAsRead(),
             ])
             ->getDatabaseMessage();
@@ -120,8 +121,14 @@ class ContentRejectedNotification extends Notification
     /**
      * Get the edit URL for this content
      */
-    protected function getEditUrl(): string
+    protected function getEditUrl(?object $notifiable = null): string
     {
+        // The site panel of the content's site, for a recipient who may open it
+        $sitePanelUrl = app(SitePanelUrls::class)->editContent($this->content, $notifiable);
+        if ($sitePanelUrl) {
+            return $sitePanelUrl;
+        }
+
         $panelId = config('tallcms.filament.panel_id', 'admin');
 
         if ($this->content instanceof CmsPost) {
