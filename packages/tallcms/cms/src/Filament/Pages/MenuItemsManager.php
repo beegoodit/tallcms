@@ -10,10 +10,12 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 use LaraZeus\SpatieTranslatable\Actions\LocaleSwitcher;
-use TallCms\Cms\Models\CmsPage;
+use TallCms\Cms\Contracts\SiteContext;
+use TallCms\Cms\Filament\Forms\OwnerSitePicker;
 use TallCms\Cms\Models\TallcmsMenu;
 use TallCms\Cms\Models\TallcmsMenuItem;
 use TallCms\Cms\Services\LocaleRegistry;
@@ -32,9 +34,27 @@ class MenuItemsManager extends NestedsetPage
     protected static bool $shouldRegisterNavigation = false; // Hide from navigation
 
     /**
+     * The package's tenant scope filters by team_id, which menu items don't
+     * have: they belong to a site through their menu (see menusQuery()).
+     */
+    protected static bool $isScopedToTenant = false;
+
+    /**
      * Active locale for translations (consistent with LaraZeus LocaleSwitcher)
      */
     public ?string $activeLocale = null;
+
+    /**
+     * In a site panel, only users who may list menus open the page.
+     */
+    public static function canAccess(): bool
+    {
+        if (app(SiteContext::class)->tenantSiteId() !== null) {
+            return auth()->user()?->can('viewAny', TallcmsMenu::class) ?? false;
+        }
+
+        return parent::canAccess();
+    }
 
     public function mount(): void
     {
@@ -162,9 +182,42 @@ class MenuItemsManager extends NestedsetPage
         return $actions;
     }
 
+    /**
+     * Menus this page works on: in a site panel the tenant's, otherwise all.
+     */
+    protected function menusQuery(): Builder
+    {
+        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
+
+        if ($tenantSiteId === null) {
+            return TallcmsMenu::query();
+        }
+
+        return TallcmsMenu::withoutGlobalScopes()->where('site_id', $tenantSiteId);
+    }
+
+    protected function menuIsAccessible(mixed $menuId): bool
+    {
+        return $menuId !== null && $menuId !== '' && $this->menusQuery()->whereKey($menuId)->exists();
+    }
+
+    /**
+     * Called by the package for every tree query: the active tab comes from
+     * the URL and the client, so a menu outside menusQuery() shows no items
+     * and none of them can be edited, moved or deleted.
+     */
+    protected function getEloquentQuery(Builder $query): Builder
+    {
+        if ($this->activeTab === null || $this->menuIsAccessible($this->activeTab)) {
+            return $query;
+        }
+
+        return $query->whereRaw('1 = 0');
+    }
+
     public function getTabs(): array
     {
-        $menus = TallcmsMenu::all();
+        $menus = $this->menusQuery()->get();
         $tabs = [];
 
         foreach ($menus as $menu) {
@@ -200,6 +253,7 @@ class MenuItemsManager extends NestedsetPage
                 unset($data['parent_id']);
 
                 // Add menu_id from active tab (this is the key fix)
+                abort_unless($this->menuIsAccessible($this->activeTab), 404);
                 $data['menu_id'] = $this->activeTab;
 
                 // Create the record with parent relationship
@@ -263,6 +317,8 @@ class MenuItemsManager extends NestedsetPage
                 $translatableLabel = $data['_translatable_label'] ?? null;
                 unset($data['_translatable_label']);
 
+                abort_unless($this->menuIsAccessible($data['menu_id'] ?? $record->getAttribute('menu_id')), 404);
+
                 $record->fill($data);
 
                 if ($translatableLabel !== null && tallcms_i18n_enabled()) {
@@ -317,28 +373,12 @@ class MenuItemsManager extends NestedsetPage
                     // Scope to the menu being edited, not the session site — the user
                     // may have navigated here from a site context that doesn't match.
                     $menuId = $arguments['tab'] ?? request()->get('activeTab') ?? $this->activeTab;
-                    $menu = $menuId
+                    $menu = $this->menuIsAccessible($menuId)
                         ? TallcmsMenu::withoutGlobalScopes()->find($menuId)
                         : null;
 
-                    $pagesHaveSiteId = \Illuminate\Support\Facades\Schema::hasColumn('tallcms_pages', 'site_id');
-
-                    $query = CmsPage::withoutGlobalScopes()
-                        ->where('status', 'published');
-
-                    if ($pagesHaveSiteId) {
-                        // Multisite is active — restrict to the menu's site. If the menu
-                        // has no site_id (orphan), show nothing rather than leak cross-site.
-                        $query->where('site_id', $menu?->site_id ?? 0);
-                    }
-
-                    // Resolve titles through the accessor (with fallback locale) so
-                    // translatable JSON columns render as strings, not "[object Object]".
-                    return $query->get()
-                        ->mapWithKeys(fn (CmsPage $page) => [
-                            $page->id => (string) ($page->title ?: __('Untitled')),
-                        ])
-                        ->all();
+                    // An orphan or inaccessible menu gets no pages rather than another site's.
+                    return OwnerSitePicker::publishedPagesOfSite($menu?->site_id);
                 })
                 ->searchable()
                 ->required()

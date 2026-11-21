@@ -72,19 +72,36 @@ class OwnerSitePicker
      */
     public static function publishedPages(mixed $livewire): array
     {
+        if (! Schema::hasColumn('tallcms_pages', 'site_id')) {
+            return static::publishedPagesOfSite(null);
+        }
+
+        $ownerSiteId = static::resolveOwnerSiteId($livewire);
+
+        if ($ownerSiteId === null) {
+            // Safe fallback — no context resolved, no options shown.
+            // Preferable to a default-site fallback that would leak
+            // cross-site pages into the picker.
+            return [];
+        }
+
+        return static::publishedPagesOfSite($ownerSiteId);
+    }
+
+    /**
+     * `[id => title]` of the published pages of one site, for pickers that
+     * know their site (e.g. a menu item: the menu's site). Without a
+     * `site_id` column (single-site), all published pages; with one, a null
+     * site gives no options rather than another site's pages.
+     *
+     * @return array<int, string>
+     */
+    public static function publishedPagesOfSite(?int $siteId): array
+    {
         $query = static::untrashedPages()->where('status', 'published');
 
         if (Schema::hasColumn('tallcms_pages', 'site_id')) {
-            $ownerSiteId = static::resolveOwnerSiteId($livewire);
-
-            if ($ownerSiteId === null) {
-                // Safe fallback — no context resolved, no options shown.
-                // Preferable to a default-site fallback that would leak
-                // cross-site pages into the picker.
-                return [];
-            }
-
-            $query->where('site_id', $ownerSiteId);
+            $query->where('site_id', $siteId ?? 0);
         }
 
         return $query->get()

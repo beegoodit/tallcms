@@ -3,6 +3,7 @@
 namespace TallCms\Cms\Filament\Resources\TallcmsMenus;
 
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -41,9 +42,10 @@ class TallcmsMenuResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        // In multisite mode, Menus are accessed through the Site resource.
-        // The resource stays registered (URLs work) but nav is hidden.
-        if (tallcms_multisite_active()) {
+        // In multisite mode, Menus are accessed through the Site resource in
+        // the untenanted admin panel. The resource stays registered (URLs
+        // work) but nav is hidden there. The site panel lists them directly.
+        if (tallcms_multisite_active() && ! Filament::hasTenancy()) {
             return false;
         }
 
@@ -85,6 +87,15 @@ class TallcmsMenuResource extends Resource
             'create' => CreateTallcmsMenu::route('/create'),
             'edit' => EditTallcmsMenu::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        try {
+            return (string) static::getEloquentQuery()->count();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public static function getEloquentQuery(): Builder

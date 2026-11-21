@@ -10,6 +10,7 @@ use Filament\Panel;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use TallCms\Cms\Filament\Concerns\RegistersTranslatablePlugin;
+use TallCms\Cms\Filament\Concerns\TogglesContentResources;
 use TallCms\Cms\Filament\Pages\ApiTokens;
 use TallCms\Cms\Filament\Pages\GlobalDefaults;
 use TallCms\Cms\Filament\Pages\MenuItemsManager;
@@ -39,20 +40,7 @@ use TallCms\Cms\Filament\Widgets\PluginUpdatesWidget;
 class TallCmsPlugin implements Plugin
 {
     use RegistersTranslatablePlugin;
-
-    protected bool $hasCategories = true;
-
-    protected bool $hasPages = true;
-
-    protected bool $hasPosts = true;
-
-    protected bool $hasComments = true;
-
-    protected bool $hasContactSubmissions = true;
-
-    protected bool $hasMedia = true;
-
-    protected bool $hasMenus = true;
+    use TogglesContentResources;
 
     protected bool $hasUsers = true;
 
@@ -155,13 +143,24 @@ class TallCmsPlugin implements Plugin
         // Filament's navigationGroups() appends, so we check if groups are already set.
         // MultisitePlugin sets groups with Platform first during register().
         if (empty($panel->getNavigationGroups())) {
-            $panel->navigationGroups([
-                \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('content')),
-                \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('appearance')),
-                \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('configuration')),
-                \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('system')),
-            ]);
+            $panel->navigationGroups(static::defaultNavigationGroups());
         }
+    }
+
+    /**
+     * TallCMS's navigation groups in their order, shared with the site panel
+     * so content sits in the same groups in every panel.
+     *
+     * @return array<\Filament\Navigation\NavigationGroup>
+     */
+    public static function defaultNavigationGroups(): array
+    {
+        return [
+            \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('content')),
+            \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('appearance')),
+            \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('configuration')),
+            \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('system')),
+        ];
     }
 
     /**
@@ -327,76 +326,6 @@ class TallCmsPlugin implements Plugin
         }
 
         return $resources;
-    }
-
-    /**
-     * Disable categories resource.
-     */
-    public function withoutCategories(): static
-    {
-        $this->hasCategories = false;
-
-        return $this;
-    }
-
-    /**
-     * Disable pages resource.
-     */
-    public function withoutPages(): static
-    {
-        $this->hasPages = false;
-
-        return $this;
-    }
-
-    /**
-     * Disable posts resource.
-     */
-    public function withoutPosts(): static
-    {
-        $this->hasPosts = false;
-
-        return $this;
-    }
-
-    /**
-     * Disable comments resource.
-     */
-    public function withoutComments(): static
-    {
-        $this->hasComments = false;
-
-        return $this;
-    }
-
-    /**
-     * Disable contact submissions resource.
-     */
-    public function withoutContactSubmissions(): static
-    {
-        $this->hasContactSubmissions = false;
-
-        return $this;
-    }
-
-    /**
-     * Disable media resource.
-     */
-    public function withoutMedia(): static
-    {
-        $this->hasMedia = false;
-
-        return $this;
-    }
-
-    /**
-     * Disable menus resource.
-     */
-    public function withoutMenus(): static
-    {
-        $this->hasMenus = false;
-
-        return $this;
     }
 
     /**

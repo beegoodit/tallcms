@@ -10,6 +10,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\QueryException;
+use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Filament\Pages\MenuItemsManager;
 
 class TallcmsMenusTable
@@ -75,11 +76,12 @@ class TallcmsMenusTable
     }
 
     /**
-     * Site column for multisite. Returns empty array when plugin is absent.
+     * Site column for multisite. Returns empty array when plugin is absent,
+     * and in a site panel, where every menu is the tenant's.
      */
     protected static function getSiteColumn(): array
     {
-        if (! app()->bound('tallcms.multisite.resolver')) {
+        if (! app()->bound('tallcms.multisite.resolver') || app(SiteContext::class)->tenantSiteId() !== null) {
             return [];
         }
 
