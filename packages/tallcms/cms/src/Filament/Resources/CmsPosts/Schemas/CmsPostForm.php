@@ -27,6 +27,7 @@ use TallCms\Cms\Rules\UniqueTranslatableSlug;
 use TallCms\Cms\Rules\UserAwareUnique;
 use TallCms\Cms\Services\CustomBlockDiscoveryService;
 use TallCms\Cms\Services\LocaleRegistry;
+use TallCms\Cms\Support\RelationshipSelectQuery;
 use TallCms\Cms\Support\SiteUsers;
 
 class CmsPostForm
@@ -206,19 +207,9 @@ class CmsPostForm
                                             ->relationship(
                                                 name: 'categories',
                                                 titleAttribute: 'name',
-                                                modifyQueryUsing: function (Builder $query): Builder {
-                                                    // For its option lookups Filament left-joins the pivot without
-                                                    // constraints and adds DISTINCT; PostgreSQL cannot compare the
-                                                    // translatable JSON columns for DISTINCT. Without that join there
-                                                    // are no duplicates to remove. (The post's own categories are
-                                                    // loaded through the constrained join, without DISTINCT.)
-                                                    if ($query->getQuery()->distinct) {
-                                                        $query->getQuery()->joins = null;
-                                                        $query->getQuery()->distinct = false;
-                                                    }
-
-                                                    return $query->orderBy('sort_order');
-                                                },
+                                                // Category names are translatable JSON: see RelationshipSelectQuery.
+                                                modifyQueryUsing: fn (Builder $query): Builder => RelationshipSelectQuery::withoutPivotDistinct($query, 'tallcms_post_category')
+                                                    ->orderBy('sort_order'),
                                             )
                                             ->getOptionLabelFromRecordUsing(fn (CmsCategory $record): string => (string) $record->name)
                                             ->options(function () {
