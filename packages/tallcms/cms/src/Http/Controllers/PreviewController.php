@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace TallCms\Cms\Http\Controllers;
 
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\View\View;
+use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Models\CmsPage;
 use TallCms\Cms\Models\CmsPost;
 use TallCms\Cms\Models\CmsPreviewToken;
@@ -19,6 +21,8 @@ class PreviewController extends Controller
 {
     public function page(Request $request, CmsPage $page): View
     {
+        $this->ensureSiteAccess($page);
+
         $device = $request->get('device', 'desktop');
 
         // Render the page content exactly like CmsPageRenderer does
@@ -34,6 +38,8 @@ class PreviewController extends Controller
 
     public function post(Request $request, CmsPost $post): View
     {
+        $this->ensureSiteAccess($post);
+
         $device = $request->get('device', 'desktop');
 
         // Render the post content exactly like CmsPageRenderer does
@@ -140,5 +146,23 @@ class PreviewController extends Controller
 
         // Process merge tags in the rendered content
         return MergeTagService::replaceTags($renderedContent, $model);
+    }
+
+    /**
+     * Logged-in previews show drafts, so only to users who may open the
+     * content's site (SiteAccess; without multisite every site). Share links
+     * (tokenPreview) are meant for anyone holding the token.
+     */
+    protected function ensureSiteAccess(Model $content): void
+    {
+        $site = $content->getAttribute('site_id') !== null ? $content->site : null;
+
+        if ($site === null) {
+            return;
+        }
+
+        $user = auth(config('tallcms.auth.guard', 'web'))->user();
+
+        abort_unless($user !== null && app(SiteAccess::class)->canAccess($user, $site), 404);
     }
 }
