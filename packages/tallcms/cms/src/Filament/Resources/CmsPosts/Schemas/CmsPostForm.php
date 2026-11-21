@@ -281,6 +281,7 @@ class CmsPostForm
 
                                         FileUpload::make('featured_image')
                                             ->label(__('tallcms::fields.featured_image'))
+                                            ->preventFilePathTampering()
                                             ->image()
                                             ->directory('cms/posts/featured-images')
                                             ->disk(\cms_media_disk())

@@ -1075,6 +1075,7 @@ class PluginManager extends Page implements HasForms
                 ->form([
                     FileUpload::make('plugin_zip')
                         ->label(__('tallcms::fields.plugin_package_zip'))
+                        ->preventFilePathTampering()
                         ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])
                         ->maxSize(50 * 1024) // 50MB
                         ->required()

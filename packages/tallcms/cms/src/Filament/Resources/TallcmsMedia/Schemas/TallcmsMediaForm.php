@@ -22,6 +22,7 @@ class TallcmsMediaForm
             ->components([
                 FileUpload::make('upload')
                     ->label(__('tallcms::fields.upload_files'))
+                    ->preventFilePathTampering()
                     ->multiple()
                     ->maxFiles(50)
                     ->directory('media')
@@ -88,6 +89,7 @@ class TallcmsMediaForm
 
                 FileUpload::make('new_file')
                     ->label(__('tallcms::fields.replace_file'))
+                    ->preventFilePathTampering()
                     ->directory('media')
                     ->disk(\cms_media_disk())
                     ->visibility(\cms_media_visibility())

@@ -1281,6 +1281,7 @@ class ThemeManager extends Page implements HasForms
                 ->form([
                     FileUpload::make('theme_zip')
                         ->label(__('tallcms::fields.theme_package_zip'))
+                        ->preventFilePathTampering()
                         ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])
                         ->maxSize(50 * 1024) // 50MB
                         ->required()
