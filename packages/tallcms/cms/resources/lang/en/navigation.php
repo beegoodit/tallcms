@@ -6,6 +6,7 @@ return [
     'groups' => [
         'platform' => 'Sites',
         'content' => 'Content',
+        'media' => 'Media',
         'appearance' => 'Appearance',
         'configuration' => 'Configuration',
         'system' => 'System',

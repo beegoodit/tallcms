@@ -16,8 +16,8 @@ return [
         'title' => 'Theme Manager',
     ],
     'site_theme' => [
-        'navigation' => 'Theme',
-        'title' => 'Theme',
+        'navigation' => 'Themes',
+        'title' => 'Themes',
     ],
     'plugin_manager' => [
         'navigation' => 'Plugins',

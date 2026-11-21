@@ -23,7 +23,7 @@ class TallcmsMenuResource extends Resource
 
     protected static ?string $model = TallcmsMenu::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBars3;
 
     public static function getNavigationLabel(): string
     {
@@ -59,7 +59,7 @@ class TallcmsMenuResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 15;
+        return 9;
     }
 
     public static function form(Schema $schema): Schema

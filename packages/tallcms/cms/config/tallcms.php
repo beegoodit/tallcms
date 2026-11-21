@@ -190,6 +190,7 @@ return [
         'groups' => [
             'platform' => null,
             'content' => null,
+            'media' => null,
             'appearance' => null,
             'configuration' => null,
             'system' => null,

@@ -41,12 +41,12 @@ class TallcmsMediaResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return tallcms_nav_group('content');
+        return tallcms_nav_group('media');
     }
 
     public static function getNavigationSort(): ?int
     {
-        return 13;
+        return 14;
     }
 
     public static function form(Schema $schema): Schema
@@ -78,5 +78,17 @@ class TallcmsMediaResource extends Resource
             'create' => CreateTallcmsMedia::route('/create'),
             'edit' => EditTallcmsMedia::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Number of records in the list, shown at 0 too.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        try {
+            return (string) static::getEloquentQuery()->count();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

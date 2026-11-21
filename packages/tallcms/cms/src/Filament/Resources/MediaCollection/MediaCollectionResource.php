@@ -45,19 +45,14 @@ class MediaCollectionResource extends Resource
         return tallcms_label('media_collections', 'plural');
     }
 
-    public static function getNavigationParentItem(): ?string
-    {
-        return tallcms_label('media', 'navigation');
-    }
-
     public static function getNavigationGroup(): ?string
     {
-        return tallcms_nav_group('content');
+        return tallcms_nav_group('media');
     }
 
     public static function getNavigationSort(): ?int
     {
-        return 14;
+        return 13;
     }
 
     public static function form(Schema $schema): Schema
@@ -150,5 +145,17 @@ class MediaCollectionResource extends Resource
             'create' => CreateMediaCollection::route('/create'),
             'edit' => EditMediaCollection::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Number of records in the list, shown at 0 too.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        try {
+            return (string) static::getEloquentQuery()->count();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

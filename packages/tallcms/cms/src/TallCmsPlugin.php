@@ -153,6 +153,7 @@ class TallCmsPlugin implements Plugin
     {
         return [
             \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('content')),
+            \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('media')),
             \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('appearance')),
             \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('configuration')),
             \Filament\Navigation\NavigationGroup::make(fn (): string => tallcms_nav_group('system')),
