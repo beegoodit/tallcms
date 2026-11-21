@@ -12,8 +12,13 @@ use TallCms\Cms\Filament\Pages\MenuItemsManager;
 use TallCms\Cms\Filament\Pages\SiteDashboard;
 use TallCms\Cms\Filament\Pages\SiteSettings;
 use TallCms\Cms\Filament\Pages\SiteTheme;
+use TallCms\Cms\Filament\Resources\CmsCategories\CmsCategoryResource;
+use TallCms\Cms\Filament\Resources\CmsComments\CmsCommentResource;
 use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
+use TallCms\Cms\Filament\Resources\CmsPosts\CmsPostResource;
+use TallCms\Cms\Filament\Resources\MediaCollection\MediaCollectionResource;
 use TallCms\Cms\Filament\Resources\TallcmsContactSubmissions\TallcmsContactSubmissionResource;
+use TallCms\Cms\Filament\Resources\TallcmsMedia\TallcmsMediaResource;
 use TallCms\Cms\Filament\Resources\TallcmsMenus\TallcmsMenuResource;
 use TallCms\Cms\Models\Site;
 
@@ -86,12 +91,29 @@ class SitePanelPlugin implements Plugin
     {
         $resources = [];
 
+        if ($this->hasCategories) {
+            $resources[] = CmsCategoryResource::class;
+        }
+
         if ($this->hasPages) {
             $resources[] = CmsPageResource::class;
         }
 
+        if ($this->hasPosts) {
+            $resources[] = CmsPostResource::class;
+        }
+
+        if ($this->hasComments && config('tallcms.comments.enabled', true)) {
+            $resources[] = CmsCommentResource::class;
+        }
+
         if ($this->hasContactSubmissions) {
             $resources[] = TallcmsContactSubmissionResource::class;
+        }
+
+        if ($this->hasMedia) {
+            $resources[] = TallcmsMediaResource::class;
+            $resources[] = MediaCollectionResource::class;
         }
 
         if ($this->hasMenus) {

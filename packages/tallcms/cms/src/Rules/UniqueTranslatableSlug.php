@@ -104,6 +104,15 @@ class UniqueTranslatableSlug implements ValidationRule
      */
     protected function applyScopeFilter($query): void
     {
+        // Site panel: the tenant's records, whoever created them.
+        $tenantSiteId = app(\TallCms\Cms\Contracts\SiteContext::class)->tenantSiteId();
+
+        if ($tenantSiteId !== null && \Illuminate\Support\Facades\Schema::hasColumn($this->table, 'site_id')) {
+            $query->where('site_id', $tenantSiteId);
+
+            return;
+        }
+
         // Check if table is user-owned (has user_id column)
         $isUserOwned = \Illuminate\Support\Facades\Schema::hasColumn($this->table, 'user_id');
 

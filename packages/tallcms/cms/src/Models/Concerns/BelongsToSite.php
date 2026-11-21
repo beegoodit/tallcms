@@ -20,7 +20,8 @@ use TallCms\Cms\Models\Site;
  *
  * Models listed in config('tallcms.sites.unassigned_models') keep site_id
  * empty on create (the multisite plugin's user-owned content, until the
- * content migration assigns it).
+ * content migration assigns it), except in a site panel: there they belong
+ * to the tenant like any site-owned content.
  */
 trait BelongsToSite
 {
@@ -47,7 +48,7 @@ trait BelongsToSite
     protected function siteIdForNewRecord(): ?int
     {
         if ($this->isUnassignedOnCreate()) {
-            return null;
+            return app(SiteContext::class)->tenantSiteId();
         }
 
         return app(SiteContext::class)->currentSiteId();

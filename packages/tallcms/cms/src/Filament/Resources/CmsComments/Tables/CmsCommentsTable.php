@@ -15,6 +15,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
+use TallCms\Cms\Filament\Resources\CmsPosts\CmsPostResource;
 
 class CmsCommentsTable
 {
@@ -60,10 +61,7 @@ class CmsCommentsTable
                 TextColumn::make('post.title')
                     ->label(__('tallcms::fields.post'))
                     ->limit(40)
-                    ->url(fn ($record) => $record->post ? route(
-                        'filament.'.config('tallcms.filament.panel_id', 'admin').'.resources.cms-posts.edit',
-                        $record->post
-                    ) : null),
+                    ->url(fn ($record) => $record->post ? CmsPostResource::getUrl('edit', ['record' => $record->post]) : null),
 
                 TextColumn::make('created_at')
                     ->label(__('tallcms::fields.submitted'))

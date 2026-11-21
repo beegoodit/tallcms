@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use TallCms\Cms\Contracts\SiteContext;
+use TallCms\Cms\Support\UserOwnership;
 
 /**
  * Filter a resource's list query to records the current user owns, scoped via
@@ -82,30 +83,12 @@ trait ScopesQueryToOwnedSites
      * site_id is NULL by design.
      *
      * super_admin → bypass. No user_id column → passthrough (model isn't
-     * user-owned, nothing to scope).
+     * user-owned, nothing to scope). In a site panel these records are the
+     * tenant's (site_id stamped on create), and Filament's tenant scope
+     * limits the query, so user_id does not apply there.
      */
     protected static function scopeQueryToOwnedByUser(Builder $query): Builder
     {
-        $user = auth()->user();
-
-        if (! $user) {
-            return $query;
-        }
-
-        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
-            return $query;
-        }
-
-        $table = $query->getModel()->getTable();
-
-        try {
-            if (Schema::hasColumn($table, 'user_id')) {
-                return $query->where($table.'.user_id', $user->getAuthIdentifier());
-            }
-        } catch (\Throwable) {
-            // Schema not yet migrated.
-        }
-
-        return $query;
+        return UserOwnership::scope($query);
     }
 }

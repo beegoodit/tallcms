@@ -61,6 +61,19 @@ trait ChecksSiteOwnership
     }
 
     /**
+     * In a site panel, whether the record belongs to the tenant; null outside
+     * a site panel. For user-owned content (posts, categories, media,
+     * collections), which is the tenant's in the site panel and the user's
+     * in /admin.
+     */
+    protected function recordIsInTenantSite(?int $siteId): ?bool
+    {
+        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
+
+        return $tenantSiteId === null ? null : $siteId === $tenantSiteId;
+    }
+
+    /**
      * Whether multisite scoping is actually in play for this install.
      * Cheaper than loading the full multisite helper: we just need to know
      * whether `tallcms_sites` exists and whether site_id columns are on the

@@ -210,10 +210,7 @@ class CmsPostForm
                                             ->getOptionLabelFromRecordUsing(fn (CmsCategory $record): string => (string) $record->name)
                                             ->options(function () {
                                                 $query = CmsCategory::query()->orderBy('sort_order');
-                                                if (auth()->check() && ! auth()->user()->hasRole('super_admin')
-                                                    && DbSchema::hasColumn('tallcms_categories', 'user_id')) {
-                                                    $query->where('user_id', auth()->id());
-                                                }
+                                                $query = \TallCms\Cms\Support\UserOwnership::scope($query);
 
                                                 return $query->get()->mapWithKeys(
                                                     fn (CmsCategory $category): array => [$category->getKey() => (string) $category->name]

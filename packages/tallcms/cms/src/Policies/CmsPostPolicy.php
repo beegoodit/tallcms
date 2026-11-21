@@ -7,9 +7,11 @@ namespace TallCms\Cms\Policies;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Contracts\Auth\Authenticatable;
 use TallCms\Cms\Models\CmsPost;
+use TallCms\Cms\Policies\Concerns\ChecksSiteOwnership;
 
 class CmsPostPolicy
 {
+    use ChecksSiteOwnership;
     use HandlesAuthorization;
 
     public function viewAny(Authenticatable $user): bool
@@ -113,6 +115,11 @@ class CmsPostPolicy
      */
     protected function ownsOrSuperAdmin(Authenticatable $user, CmsPost $cmsPost): bool
     {
+        $inTenantSite = $this->recordIsInTenantSite($cmsPost->site_id === null ? null : (int) $cmsPost->site_id);
+        if ($inTenantSite !== null) {
+            return $inTenantSite;
+        }
+
         if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
             return true;
         }

@@ -11,6 +11,7 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use TallCms\Cms\Filament\Resources\CmsComments\CmsCommentResource;
+use TallCms\Cms\Filament\Resources\CmsPosts\CmsPostResource;
 
 class ViewCmsComment extends ViewRecord
 {
@@ -65,10 +66,7 @@ class ViewCmsComment extends ViewRecord
                     ->schema([
                         TextEntry::make('post.title')
                             ->label(__('tallcms::fields.post_title'))
-                            ->url(fn ($record) => $record->post ? route(
-                                'filament.'.config('tallcms.filament.panel_id', 'admin').'.resources.cms-posts.edit',
-                                $record->post
-                            ) : null),
+                            ->url(fn ($record) => $record->post ? CmsPostResource::getUrl('edit', ['record' => $record->post]) : null),
                         TextEntry::make('parent_info')
                             ->label(__('tallcms::fields.in_reply_to'))
                             ->state(fn ($record) => $record->parent ? 'Comment by '.($record->parent->getAuthorName() ?? 'Anonymous') : 'Top-level comment')

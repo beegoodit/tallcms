@@ -7,6 +7,7 @@ namespace TallCms\Cms\Rules;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
+use TallCms\Cms\Contracts\SiteContext;
 
 /**
  * User-scoped unique validation helper.
@@ -14,6 +15,9 @@ use Illuminate\Validation\Rules\Unique;
  * Wraps Rule::unique() and scopes to the authenticated user's user_id
  * (or author_id for posts). Falls back to global uniqueness when the
  * column doesn't exist or no user is authenticated.
+ *
+ * In a site panel the records are the tenant's, so uniqueness is checked
+ * within the tenant's site instead.
  */
 class UserAwareUnique
 {
@@ -23,6 +27,12 @@ class UserAwareUnique
 
         if ($ignoreId) {
             $rule->ignore($ignoreId);
+        }
+
+        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
+
+        if ($tenantSiteId !== null && Schema::hasColumn($table, 'site_id')) {
+            return $rule->where('site_id', $tenantSiteId);
         }
 
         $ownerColumn = static::getOwnerColumn($table);

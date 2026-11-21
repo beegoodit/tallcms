@@ -7,9 +7,11 @@ namespace TallCms\Cms\Policies;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Contracts\Auth\Authenticatable;
 use TallCms\Cms\Models\TallcmsMedia;
+use TallCms\Cms\Policies\Concerns\ChecksSiteOwnership;
 
 class TallcmsMediaPolicy
 {
+    use ChecksSiteOwnership;
     use HandlesAuthorization;
 
     public function viewAny(Authenticatable $user): bool
@@ -69,6 +71,11 @@ class TallcmsMediaPolicy
 
     protected function ownsOrSuperAdmin(Authenticatable $user, TallcmsMedia $tallcmsMedia): bool
     {
+        $inTenantSite = $this->recordIsInTenantSite($tallcmsMedia->site_id === null ? null : (int) $tallcmsMedia->site_id);
+        if ($inTenantSite !== null) {
+            return $inTenantSite;
+        }
+
         if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
             return true;
         }

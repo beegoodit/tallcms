@@ -92,10 +92,7 @@ class DocumentListBlock extends RichContentCustomBlock
                                     ->multiple()
                                     ->options(function () {
                                         $query = MediaCollection::query();
-                                        if (auth()->check() && ! auth()->user()->hasRole('super_admin')
-                                            && \Illuminate\Support\Facades\Schema::hasColumn('tallcms_media_collections', 'user_id')) {
-                                            $query->where('user_id', auth()->id());
-                                        }
+                                        $query = \TallCms\Cms\Support\UserOwnership::scope($query);
 
                                         return $query->pluck('name', 'id')->toArray();
                                     })

@@ -84,10 +84,7 @@ class PostsBlock extends RichContentCustomBlock
                                             ->multiple()
                                             ->options(function () {
                                                 $query = \TallCms\Cms\Models\CmsCategory::query();
-                                                if (auth()->check() && ! auth()->user()->hasRole('super_admin')
-                                                    && \Illuminate\Support\Facades\Schema::hasColumn('tallcms_categories', 'user_id')) {
-                                                    $query->where('user_id', auth()->id());
-                                                }
+                                                $query = \TallCms\Cms\Support\UserOwnership::scope($query);
 
                                                 return $query->orderBy('sort_order')->get()->mapWithKeys(
                                                     fn (\TallCms\Cms\Models\CmsCategory $category): array => [$category->getKey() => (string) $category->name]
@@ -140,10 +137,7 @@ class PostsBlock extends RichContentCustomBlock
                                             ->multiple()
                                             ->options(function () {
                                                 $query = \TallCms\Cms\Models\CmsPost::published();
-                                                if (auth()->check() && ! auth()->user()->hasRole('super_admin')
-                                                    && \Illuminate\Support\Facades\Schema::hasColumn('tallcms_posts', 'user_id')) {
-                                                    $query->where('user_id', auth()->id());
-                                                }
+                                                $query = \TallCms\Cms\Support\UserOwnership::scope($query);
 
                                                 return $query->orderByDesc('published_at')->orderBy('id')->get()->mapWithKeys(
                                                     fn (\TallCms\Cms\Models\CmsPost $post): array => [$post->getKey() => (string) $post->title]

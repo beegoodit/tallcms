@@ -80,10 +80,7 @@ class CmsCategoryForm
                     ->label(__('tallcms::fields.parent', ['resource' => tallcms_label('categories', 'singular')]))
                     ->options(function () {
                         $query = CmsCategory::query()->whereNull('parent_id');
-                        if (auth()->check() && ! auth()->user()->hasRole('super_admin')
-                            && \Illuminate\Support\Facades\Schema::hasColumn('tallcms_categories', 'user_id')) {
-                            $query->where('user_id', auth()->id());
-                        }
+                        $query = \TallCms\Cms\Support\UserOwnership::scope($query);
 
                         return $query->orderBy('sort_order')->get()->mapWithKeys(
                             fn (CmsCategory $category): array => [$category->getKey() => (string) $category->name]
