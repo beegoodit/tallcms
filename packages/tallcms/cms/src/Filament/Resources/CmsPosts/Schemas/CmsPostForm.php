@@ -27,6 +27,7 @@ use TallCms\Cms\Rules\UniqueTranslatableSlug;
 use TallCms\Cms\Rules\UserAwareUnique;
 use TallCms\Cms\Services\CustomBlockDiscoveryService;
 use TallCms\Cms\Services\LocaleRegistry;
+use TallCms\Cms\Support\SiteUsers;
 
 class CmsPostForm
 {
@@ -185,7 +186,7 @@ class CmsPostForm
                                             ->relationship(
                                                 name: 'author',
                                                 titleAttribute: 'name',
-                                                modifyQueryUsing: fn (Builder $query) => $query->orderBy('name'),
+                                                modifyQueryUsing: fn (Builder $query, ?Model $record) => SiteUsers::scope($query, $record)->orderBy('name'),
                                             )
                                             ->getOptionLabelFromRecordUsing(fn (Model $record): string => $record->name)
                                             ->searchable()

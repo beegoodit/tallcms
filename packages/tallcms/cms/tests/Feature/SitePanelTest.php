@@ -6,6 +6,7 @@ namespace TallCms\Cms\Tests\Feature;
 
 use Filament\Panel;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use TallCms\Cms\Contracts\SiteAccess;
@@ -67,6 +68,11 @@ class SitePanelTest extends TestCase
             public function canAccess(Authenticatable $user, Site $site): bool
             {
                 return $site->is($this->allowed);
+            }
+
+            public function scopeUsers(Builder $users, Site $site): Builder
+            {
+                return $users;
             }
         });
         $user = $this->createUser();

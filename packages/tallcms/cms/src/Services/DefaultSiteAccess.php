@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace TallCms\Cms\Services;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Models\Site;
@@ -23,6 +24,14 @@ class DefaultSiteAccess implements SiteAccess
     public function canAccess(Authenticatable $user, Site $site): bool
     {
         return true;
+    }
+
+    /**
+     * Without the multisite plugin every user belongs to the one site.
+     */
+    public function scopeUsers(Builder $users, Site $site): Builder
+    {
+        return $users;
     }
 
     /**

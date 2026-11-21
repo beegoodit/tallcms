@@ -28,6 +28,7 @@ use TallCms\Cms\Services\CustomBlockDiscoveryService;
 use TallCms\Cms\Services\LocaleRegistry;
 use TallCms\Cms\Services\TemplateRegistry;
 use TallCms\Cms\Services\WidgetRegistry;
+use TallCms\Cms\Support\SiteUsers;
 
 class CmsPageForm
 {
@@ -208,7 +209,7 @@ class CmsPageForm
                                             ->relationship(
                                                 name: 'author',
                                                 titleAttribute: 'name',
-                                                modifyQueryUsing: fn (Builder $query) => $query->orderBy('name'),
+                                                modifyQueryUsing: fn (Builder $query, ?Model $record) => SiteUsers::scope($query, $record)->orderBy('name'),
                                             )
                                             ->getOptionLabelFromRecordUsing(fn (Model $record): string => $record->name)
                                             ->searchable()
