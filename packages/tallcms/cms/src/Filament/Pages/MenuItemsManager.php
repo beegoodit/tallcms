@@ -2,6 +2,7 @@
 
 namespace TallCms\Cms\Filament\Pages;
 
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -254,11 +255,36 @@ class MenuItemsManager extends NestedsetPage
     public function deleteAction(): DeleteAction
     {
         return parent::deleteAction()
+            ->authorize(fn (): bool => $this->canChangeItems())
             ->record(function (array $arguments): ?Model {
                 $id = $arguments['id'] ?? 0;
 
                 return $id ? $this->getQuery()->findOrFail($id) : null;
             });
+    }
+
+    public function moveNodeAction(): Action
+    {
+        return parent::moveNodeAction()->authorize(fn (): bool => $this->canChangeItems());
+    }
+
+    public function fixTreeAction(): Action
+    {
+        return parent::fixTreeAction()->authorize(fn (): bool => $this->canChangeItems());
+    }
+
+    /**
+     * Items are part of their menu: in a site panel changing them needs the
+     * right to update menus (opening the page needs viewAny). In /admin the
+     * page has no such check, as before.
+     */
+    protected function canChangeItems(): bool
+    {
+        if (app(SiteContext::class)->tenantSiteId() === null) {
+            return true;
+        }
+
+        return auth()->user()?->can('Update:TallcmsMenu') ?? false;
     }
 
     /**
@@ -268,6 +294,7 @@ class MenuItemsManager extends NestedsetPage
     protected function configureItemCreation(CreateAction $action): CreateAction
     {
         return $action
+            ->authorize(fn (): bool => $this->canChangeItems())
             ->mutateFormDataUsing(function (array $data): array {
                 // Store label as translation for current locale
                 if (isset($data['label']) && tallcms_i18n_enabled()) {
@@ -325,6 +352,7 @@ class MenuItemsManager extends NestedsetPage
     public function editAction(): EditAction
     {
         return parent::editAction()
+            ->authorize(fn (): bool => $this->canChangeItems())
             ->fillForm(function (Model $record): array {
                 $data = $record->toArray();
 
