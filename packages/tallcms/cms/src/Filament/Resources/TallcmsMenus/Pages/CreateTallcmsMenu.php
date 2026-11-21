@@ -4,6 +4,7 @@ namespace TallCms\Cms\Filament\Resources\TallcmsMenus\Pages;
 
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Schema;
+use Livewire\Attributes\Locked;
 use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Filament\Resources\TallcmsMenus\TallcmsMenuResource;
 
@@ -15,8 +16,10 @@ class CreateTallcmsMenu extends CreateRecord
      * Owning site id, captured from the ?site=<id> query parameter attached by
      * the Site resource's Menus relation manager. Persisted as a Livewire
      * property so it survives the Livewire update cycle that runs on save.
-     * Ignored in a site panel: the site comes from the tenant only.
+     * Ignored in a site panel: the site comes from the tenant only. Locked:
+     * only the server sets it, the client cannot.
      */
+    #[Locked]
     public ?int $ownerSiteId = null;
 
     public function mount(): void
@@ -31,7 +34,13 @@ class CreateTallcmsMenu extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        if ($this->ownerSiteId !== null
+        // In a site panel the tenant is the site, whatever else was captured;
+        // set here already, so the model's own creating rules see that site.
+        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
+
+        if ($tenantSiteId !== null) {
+            $data['site_id'] = $tenantSiteId;
+        } elseif ($this->ownerSiteId !== null
             && Schema::hasColumn('tallcms_menus', 'site_id')
             && empty($data['site_id'])
         ) {

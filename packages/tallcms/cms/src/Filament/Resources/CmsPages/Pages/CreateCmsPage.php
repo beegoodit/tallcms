@@ -5,6 +5,7 @@ namespace TallCms\Cms\Filament\Resources\CmsPages\Pages;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Schema;
 use LaraZeus\SpatieTranslatable\Resources\Pages\CreateRecord\Concerns\Translatable;
+use Livewire\Attributes\Locked;
 use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Filament\Concerns\HasFromSiteContext;
 use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
@@ -22,8 +23,9 @@ class CreateCmsPage extends CreateRecord
      * property so it survives the Livewire update cycle that runs on save —
      * request()->query() on /livewire/update has no access to the original
      * page URL's query string. Ignored in a site panel, where the tenant is
-     * the owning site.
+     * the owning site. Locked: only the server sets it, the client cannot.
      */
+    #[Locked]
     public ?int $ownerSiteId = null;
 
     public function mount(): void
@@ -57,7 +59,13 @@ class CreateCmsPage extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        if ($this->ownerSiteId !== null
+        // In a site panel the tenant is the site, whatever else was captured;
+        // set here already, so the model's own creating rules see that site.
+        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
+
+        if ($tenantSiteId !== null) {
+            $data['site_id'] = $tenantSiteId;
+        } elseif ($this->ownerSiteId !== null
             && Schema::hasColumn('tallcms_pages', 'site_id')
             && empty($data['site_id'])
         ) {

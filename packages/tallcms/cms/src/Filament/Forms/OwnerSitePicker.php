@@ -41,6 +41,13 @@ class OwnerSitePicker
      */
     public static function resolveOwnerSiteId(mixed $livewire): ?int
     {
+        // In a site panel the tenant is the site; nothing on the form overrides it.
+        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
+
+        if ($tenantSiteId !== null) {
+            return $tenantSiteId;
+        }
+
         if ($livewire === null) {
             return null;
         }
