@@ -76,19 +76,27 @@ class CmsCommentResource extends Resource
         return static::scopeQueryToOwnedSites($query);
     }
 
+    /**
+     * Comments awaiting moderation, shown at 0 too.
+     */
     public static function getNavigationBadge(): ?string
     {
-        try {
-            $count = static::scopeQueryToOwnedSites(static::getModel()::pending())->count();
+        $count = static::pendingCount();
 
-            return $count > 0 ? (string) $count : null;
-        } catch (\Throwable) {
-            return null;
-        }
+        return $count === null ? null : (string) $count;
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'warning';
+        return static::pendingCount() ? 'warning' : 'gray';
+    }
+
+    protected static function pendingCount(): ?int
+    {
+        try {
+            return static::scopeQueryToOwnedSites(static::getModel()::pending())->count();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

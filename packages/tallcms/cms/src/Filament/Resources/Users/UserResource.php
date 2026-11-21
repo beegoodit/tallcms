@@ -72,4 +72,16 @@ class UserResource extends Resource
     {
         return 51;
     }
+
+    /**
+     * Number of records in the list, shown at 0 too.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        try {
+            return (string) static::getEloquentQuery()->count();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
 }
