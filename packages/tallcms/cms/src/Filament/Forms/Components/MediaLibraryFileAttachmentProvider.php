@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use TallCms\Cms\Jobs\OptimizeMediaJob;
 use TallCms\Cms\Models\TallcmsMedia;
+use TallCms\Cms\Support\UserOwnership;
 
 class MediaLibraryFileAttachmentProvider implements FileAttachmentProvider
 {
@@ -85,7 +86,7 @@ class MediaLibraryFileAttachmentProvider implements FileAttachmentProvider
     {
         // Numeric ID — resolve from media library
         if (is_numeric($file)) {
-            $media = TallcmsMedia::find($file);
+            $media = UserOwnership::scopeToTenant(TallcmsMedia::query())->find($file);
 
             return $media?->url;
         }
@@ -148,7 +149,7 @@ class MediaLibraryFileAttachmentProvider implements FileAttachmentProvider
         }
 
         foreach ($updates as $id => $alt) {
-            TallcmsMedia::where('id', $id)->update(['alt_text' => $alt]);
+            UserOwnership::scopeToTenant(TallcmsMedia::where('id', $id))->update(['alt_text' => $alt]);
         }
     }
 

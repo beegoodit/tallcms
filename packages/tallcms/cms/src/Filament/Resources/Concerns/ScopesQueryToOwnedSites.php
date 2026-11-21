@@ -23,15 +23,15 @@ use TallCms\Cms\Support\UserOwnership;
  *
  * super_admins bypass the filter. Single-site installs (no site_id column)
  * short-circuit before any filtering. Users with no owned sites get zero rows.
- * In a site panel, Filament's tenant scope already limits the query to the
- * tenant, so ownership by user_id does not apply there.
+ * In a site panel the query is limited to the tenant (explicitly, see
+ * UserOwnership::scopeToTenant()); ownership by user_id does not apply there.
  */
 trait ScopesQueryToOwnedSites
 {
     protected static function scopeQueryToOwnedSites(Builder $query): Builder
     {
         if (app(SiteContext::class)->tenantSiteId() !== null) {
-            return $query;
+            return UserOwnership::scopeToTenant($query);
         }
 
         $user = auth()->user();
