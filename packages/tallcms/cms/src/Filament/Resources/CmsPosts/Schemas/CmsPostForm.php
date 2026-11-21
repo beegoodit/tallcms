@@ -205,7 +205,19 @@ class CmsPostForm
                                             ->relationship(
                                                 name: 'categories',
                                                 titleAttribute: 'name',
-                                                modifyQueryUsing: fn (Builder $query) => $query->orderBy('sort_order'),
+                                                modifyQueryUsing: function (Builder $query): Builder {
+                                                    // For its option lookups Filament left-joins the pivot without
+                                                    // constraints and adds DISTINCT; PostgreSQL cannot compare the
+                                                    // translatable JSON columns for DISTINCT. Without that join there
+                                                    // are no duplicates to remove. (The post's own categories are
+                                                    // loaded through the constrained join, without DISTINCT.)
+                                                    if ($query->getQuery()->distinct) {
+                                                        $query->getQuery()->joins = null;
+                                                        $query->getQuery()->distinct = false;
+                                                    }
+
+                                                    return $query->orderBy('sort_order');
+                                                },
                                             )
                                             ->getOptionLabelFromRecordUsing(fn (CmsCategory $record): string => (string) $record->name)
                                             ->options(function () {
