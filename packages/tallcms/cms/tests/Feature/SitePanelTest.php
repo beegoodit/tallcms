@@ -11,8 +11,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Filament\Concerns\HasSiteTenants;
+use TallCms\Cms\Filament\Pages\MenuItemsManager;
 use TallCms\Cms\Filament\Pages\SiteDashboard;
+use TallCms\Cms\Filament\Pages\SiteSettings;
+use TallCms\Cms\Filament\Pages\SiteTheme;
 use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
+use TallCms\Cms\Filament\Resources\MediaCollection\MediaCollectionResource;
+use TallCms\Cms\Filament\Resources\TallcmsMedia\TallcmsMediaResource;
+use TallCms\Cms\Filament\Resources\TallcmsMenus\TallcmsMenuResource;
 use TallCms\Cms\Models\Site;
 use TallCms\Cms\SitePanelPlugin;
 use TallCms\Cms\Tests\Fixtures\User;
@@ -37,6 +43,23 @@ class SitePanelTest extends TestCase
         $this->assertContains(SiteDashboard::class, $panel->getPages());
         $this->assertContains(CmsPageResource::class, $panel->getResources());
         $this->assertTrue($panel->hasPlugin('spatie-translatable'));
+    }
+
+    public function test_a_host_switches_resources_and_pages_off(): void
+    {
+        $all = SitePanelPlugin::make();
+        $reduced = SitePanelPlugin::make()->withoutMedia()->withoutMenus()->withoutSiteSettings()->withoutThemeManager();
+
+        $this->assertContains(TallcmsMediaResource::class, $all->getResources());
+        $this->assertContains(MenuItemsManager::class, $all->getPages());
+        $this->assertContains(SiteSettings::class, $all->getPages());
+        $this->assertContains(SiteTheme::class, $all->getPages());
+
+        $this->assertNotContains(TallcmsMediaResource::class, $reduced->getResources());
+        $this->assertNotContains(MediaCollectionResource::class, $reduced->getResources());
+        $this->assertNotContains(TallcmsMenuResource::class, $reduced->getResources());
+        $this->assertSame([SiteDashboard::class], $reduced->getPages());
+        $this->assertContains(CmsPageResource::class, $reduced->getResources());
     }
 
     public function test_by_default_a_user_may_open_every_site_ordered_by_name(): void
