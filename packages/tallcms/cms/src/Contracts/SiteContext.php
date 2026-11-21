@@ -17,4 +17,11 @@ interface SiteContext
      * The site new content belongs to, or null if there is no context.
      */
     public function currentSiteId(): ?int;
+
+    /**
+     * The site panel's tenant, or null outside a site panel. Inside a site
+     * panel, access to the tenant was already checked (SiteAccess), so content
+     * checks only ask whether a record belongs to it.
+     */
+    public function tenantSiteId(): ?int;
 }

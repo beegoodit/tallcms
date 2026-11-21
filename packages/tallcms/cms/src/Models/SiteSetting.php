@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Support\MenuCache;
 
 class SiteSetting extends Model
@@ -239,6 +240,8 @@ class SiteSetting extends Model
      * Resolve the current site ID for multisite operations.
      *
      * Context-aware: uses different sources based on request type.
+     * - Site panel: the tenant (not memoized, so a value read before the
+     *   panel identified its tenant does not stick)
      * - Admin requests (tallcms.admin_context attribute): session is authoritative
      * - Frontend requests: resolver singleton is authoritative (domain-based)
      * - Single-site installs (no multisite resolver bound): default site is current
@@ -251,6 +254,12 @@ class SiteSetting extends Model
      */
     protected static function resolveCurrentSiteId(): ?int
     {
+        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
+
+        if ($tenantSiteId !== null) {
+            return $tenantSiteId;
+        }
+
         $request = request();
 
         if ($request->attributes->get(static::CURRENT_SITE_ID_MEMOIZED_ATTRIBUTE, false)) {

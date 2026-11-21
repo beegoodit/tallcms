@@ -77,6 +77,19 @@ class OwnerSitePickerTest extends TestCase
         $this->assertArrayNotHasKey($pageB->id, $options);
     }
 
+    public function test_trashed_pages_are_no_options(): void
+    {
+        $kept = CmsPage::create(['site_id' => 1, 'title' => ['en' => 'Kept'], 'slug' => ['en' => 'kept'], 'status' => 'published']);
+        $trashed = CmsPage::create(['site_id' => 1, 'title' => ['en' => 'Trashed'], 'slug' => ['en' => 'trashed'], 'status' => 'published']);
+        $trashed->delete();
+
+        $livewire = new \stdClass;
+        $livewire->ownerSiteId = 1;
+
+        $this->assertSame([$kept->id], array_keys(OwnerSitePicker::publishedPages($livewire)));
+        $this->assertSame([$kept->id], array_keys(OwnerSitePicker::parentPageOptions($livewire)));
+    }
+
     public function test_returns_empty_when_no_owner_context(): void
     {
         CmsPage::create([

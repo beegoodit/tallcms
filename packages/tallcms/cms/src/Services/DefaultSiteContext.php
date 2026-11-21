@@ -22,7 +22,7 @@ class DefaultSiteContext implements SiteContext
         return $this->tenantSiteId() ?? $this->fallbackSiteId();
     }
 
-    protected function tenantSiteId(): ?int
+    public function tenantSiteId(): ?int
     {
         if (! app()->bound('filament')) {
             return null;

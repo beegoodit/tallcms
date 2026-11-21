@@ -11,6 +11,7 @@ use Illuminate\Support\Collection;
 use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Filament\Concerns\HasSiteTenants;
 use TallCms\Cms\Filament\Pages\SiteDashboard;
+use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
 use TallCms\Cms\Models\Site;
 use TallCms\Cms\SitePanelPlugin;
 use TallCms\Cms\Tests\Fixtures\User;
@@ -33,6 +34,8 @@ class SitePanelTest extends TestCase
         $this->assertSame(SiteSubclass::class, $panel->getTenantModel());
         $this->assertSame('uuid', $panel->getTenantSlugAttribute());
         $this->assertContains(SiteDashboard::class, $panel->getPages());
+        $this->assertContains(CmsPageResource::class, $panel->getResources());
+        $this->assertTrue($panel->hasPlugin('spatie-translatable'));
     }
 
     public function test_by_default_a_user_may_open_every_site_ordered_by_name(): void

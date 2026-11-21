@@ -7,6 +7,7 @@ namespace TallCms\Cms\Policies\Concerns;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use TallCms\Cms\Contracts\SiteContext;
 
 /**
  * Layers site-ownership authorization on top of Shield's role/permission
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Schema;
  * (CmsPage, TallcmsMenu) in multisite installs.
  *
  * Rule:
+ *   - in a site panel: the record belongs to the tenant (the user's access to
+ *     the tenant was checked by SiteAccess when the panel resolved it)
  *   - super_admin bypass
  *   - otherwise, user.id must equal the owning site's user_id
  *
@@ -30,6 +33,12 @@ trait ChecksSiteOwnership
      */
     protected function userOwnsContentSite(Authenticatable $user, ?int $siteId): bool
     {
+        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
+
+        if ($tenantSiteId !== null) {
+            return $siteId === $tenantSiteId;
+        }
+
         if (! $this->multisiteScopingActive()) {
             return true;
         }

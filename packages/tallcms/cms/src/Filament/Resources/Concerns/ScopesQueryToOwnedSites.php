@@ -7,6 +7,7 @@ namespace TallCms\Cms\Filament\Resources\Concerns;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use TallCms\Cms\Contracts\SiteContext;
 
 /**
  * Filter a resource's list query to records the current user owns, scoped via
@@ -21,11 +22,17 @@ use Illuminate\Support\Facades\Schema;
  *
  * super_admins bypass the filter. Single-site installs (no site_id column)
  * short-circuit before any filtering. Users with no owned sites get zero rows.
+ * In a site panel, Filament's tenant scope already limits the query to the
+ * tenant, so ownership by user_id does not apply there.
  */
 trait ScopesQueryToOwnedSites
 {
     protected static function scopeQueryToOwnedSites(Builder $query): Builder
     {
+        if (app(SiteContext::class)->tenantSiteId() !== null) {
+            return $query;
+        }
+
         $user = auth()->user();
 
         if (! $user) {

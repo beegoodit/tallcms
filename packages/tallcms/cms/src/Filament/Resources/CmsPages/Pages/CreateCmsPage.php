@@ -5,6 +5,7 @@ namespace TallCms\Cms\Filament\Resources\CmsPages\Pages;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Schema;
 use LaraZeus\SpatieTranslatable\Resources\Pages\CreateRecord\Concerns\Translatable;
+use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Filament\Concerns\HasFromSiteContext;
 use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
 
@@ -20,7 +21,8 @@ class CreateCmsPage extends CreateRecord
      * the Site resource's Pages relation manager. Persisted as a Livewire
      * property so it survives the Livewire update cycle that runs on save —
      * request()->query() on /livewire/update has no access to the original
-     * page URL's query string.
+     * page URL's query string. Ignored in a site panel, where the tenant is
+     * the owning site.
      */
     public ?int $ownerSiteId = null;
 
@@ -29,7 +31,7 @@ class CreateCmsPage extends CreateRecord
         parent::mount();
 
         $siteParam = request()->query('site');
-        if ($siteParam !== null && is_numeric($siteParam)) {
+        if ($siteParam !== null && is_numeric($siteParam) && app(SiteContext::class)->tenantSiteId() === null) {
             $this->ownerSiteId = (int) $siteParam;
         }
 

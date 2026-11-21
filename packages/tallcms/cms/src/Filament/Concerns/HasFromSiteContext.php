@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace TallCms\Cms\Filament\Concerns;
 
 use Filament\Actions\Action;
+use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Filament\Resources\SiteResource\SiteResource as CoreSiteResource;
 use TallCms\Cms\Models\CmsPage;
 use TallCms\Cms\Models\Site;
@@ -37,7 +38,8 @@ trait HasFromSiteContext
 
     protected function captureFromSite(): void
     {
-        if (! CmsPage::hasSiteIdColumn()) {
+        // A site panel has no Site resource to return to.
+        if (! CmsPage::hasSiteIdColumn() || app(SiteContext::class)->tenantSiteId() !== null) {
             return;
         }
 

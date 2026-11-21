@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace TallCms\Cms\Filament\Forms;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Models\CmsPage;
@@ -71,7 +72,7 @@ class OwnerSitePicker
      */
     public static function publishedPages(mixed $livewire): array
     {
-        $query = CmsPage::withoutGlobalScopes()->where('status', 'published');
+        $query = static::untrashedPages()->where('status', 'published');
 
         if (Schema::hasColumn('tallcms_pages', 'site_id')) {
             $ownerSiteId = static::resolveOwnerSiteId($livewire);
@@ -100,7 +101,7 @@ class OwnerSitePicker
      */
     public static function parentPageOptions(mixed $livewire): array
     {
-        $query = CmsPage::withoutGlobalScopes()->whereNull('parent_id');
+        $query = static::untrashedPages()->whereNull('parent_id');
 
         if (Schema::hasColumn('tallcms_pages', 'site_id')) {
             $ownerSiteId = static::resolveOwnerSiteId($livewire);
@@ -122,5 +123,15 @@ class OwnerSitePicker
                 $page->id => (string) ($page->title ?: __('Untitled')),
             ])
             ->all();
+    }
+
+    /**
+     * Pages without the ambient site scope (the pickers filter by the owner
+     * site themselves), but still without soft-deleted pages:
+     * withoutGlobalScopes() also drops the SoftDeletingScope.
+     */
+    protected static function untrashedPages(): Builder
+    {
+        return CmsPage::withoutGlobalScopes()->whereNull((new CmsPage)->getQualifiedDeletedAtColumn());
     }
 }

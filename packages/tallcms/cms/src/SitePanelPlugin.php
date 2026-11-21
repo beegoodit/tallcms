@@ -6,7 +6,9 @@ namespace TallCms\Cms;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use TallCms\Cms\Filament\Concerns\RegistersTranslatablePlugin;
 use TallCms\Cms\Filament\Pages\SiteDashboard;
+use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
 use TallCms\Cms\Models\Site;
 
 /**
@@ -17,9 +19,15 @@ use TallCms\Cms\Models\Site;
  * plugin. The host user implements Filament's HasTenants, e.g. through
  * HasSiteTenants. Sites are created elsewhere, so there is no tenant
  * registration.
+ *
+ * Content resources are registered here one by one, not through
+ * TallCmsPlugin, which also brings platform pages, Shield and every installed
+ * plugin.
  */
 class SitePanelPlugin implements Plugin
 {
+    use RegistersTranslatablePlugin;
+
     public const ID = 'tallcms-site';
 
     public static function make(): static
@@ -38,7 +46,12 @@ class SitePanelPlugin implements Plugin
             ->tenant(config('tallcms.sites.model', Site::class), slugAttribute: 'uuid')
             ->pages([
                 SiteDashboard::class,
+            ])
+            ->resources([
+                CmsPageResource::class,
             ]);
+
+        $this->registerTranslatablePlugin($panel);
     }
 
     public function boot(Panel $panel): void

@@ -2,6 +2,7 @@
 
 namespace TallCms\Cms\Filament\Resources\CmsPages;
 
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
@@ -68,9 +69,10 @@ class CmsPageResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        // In multisite mode, Pages are accessed through the Site resource.
-        // The resource stays registered (URLs work) but nav is hidden.
-        if (tallcms_multisite_active()) {
+        // In multisite mode, Pages are accessed through the Site resource in
+        // the untenanted admin panel. The resource stays registered (URLs
+        // work) but nav is hidden there. The site panel lists them directly.
+        if (tallcms_multisite_active() && ! Filament::hasTenancy()) {
             return false;
         }
 
