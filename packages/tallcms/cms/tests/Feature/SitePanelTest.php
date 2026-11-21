@@ -62,6 +62,16 @@ class SitePanelTest extends TestCase
         $this->assertContains(CmsPageResource::class, $reduced->getResources());
     }
 
+    public function test_the_theme_page_is_only_offered_where_site_themes_are_applied(): void
+    {
+        $this->assertFalse(SiteTheme::siteThemesAreApplied());
+
+        // The multisite plugin applies a site's own theme to the frontend.
+        $this->app->instance('tallcms.multisite.resolver', new \stdClass);
+
+        $this->assertTrue(SiteTheme::siteThemesAreApplied());
+    }
+
     public function test_by_default_a_user_may_open_every_site_ordered_by_name(): void
     {
         $default = Site::getDefault();

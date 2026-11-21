@@ -10,6 +10,7 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
 use TallCms\Cms\Models\Site;
+use TallCms\Cms\Services\SitePanelUrls;
 
 /**
  * Start page of the site panel: which site this is and where it lives.
@@ -32,7 +33,7 @@ class SiteDashboard extends Dashboard
             View::make('tallcms::filament.pages.site-dashboard')
                 ->viewData(fn (): array => [
                     'site' => $this->site(),
-                    'frontendUrl' => $this->site() ? tallcms_base_url((int) $this->site()->getKey()) : null,
+                    'frontendUrl' => $this->site() ? app(SitePanelUrls::class)->frontend($this->site()) : null,
                     'renderHook' => self::RENDER_HOOK,
                 ]),
         ]);

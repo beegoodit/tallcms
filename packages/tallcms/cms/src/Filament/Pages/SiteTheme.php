@@ -11,6 +11,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use TallCms\Cms\Models\Site;
+use TallCms\Cms\Services\SitePanelUrls;
 
 /**
  * The tenant site's theme in the site panel: choose one of the installed
@@ -23,7 +24,8 @@ use TallCms\Cms\Models\Site;
 class SiteTheme extends ThemeManager
 {
     /**
-     * Only inside a site panel, for users who may manage themes.
+     * Only inside a site panel of an installation that applies site themes,
+     * for users who may manage themes.
      */
     public static function canAccess(): bool
     {
@@ -31,7 +33,21 @@ class SiteTheme extends ThemeManager
             return false;
         }
 
+        if (! static::siteThemesAreApplied()) {
+            return false;
+        }
+
         return auth()->user()?->can('View:ThemeManager') ?? false;
+    }
+
+    /**
+     * A site's own theme is applied to the frontend by the multisite plugin
+     * (core's frontend reads config/theme.php only); without it the choice
+     * made on this page would show as active and change nothing.
+     */
+    public static function siteThemesAreApplied(): bool
+    {
+        return app()->bound('tallcms.multisite.resolver');
     }
 
     public static function getNavigationLabel(): string
@@ -47,7 +63,7 @@ class SiteTheme extends ThemeManager
     /**
      * Always the tenant; the switcher session of /admin plays no part.
      */
-    protected function getMultisiteContext(): ?object
+    protected function resolveMultisiteContext(): ?object
     {
         $site = Filament::getTenant();
         abort_unless($site instanceof Site, 404);
@@ -69,10 +85,10 @@ class SiteTheme extends ThemeManager
 
     public function visitSiteUrl(): string
     {
-        $port = request()->getPort();
-        $port = in_array($port, [80, 443], true) ? '' : ':'.$port;
+        $site = Filament::getTenant();
+        abort_unless($site instanceof Site, 404);
 
-        return request()->getScheme().'://'.$this->getMultisiteContext()->domain.$port;
+        return app(SitePanelUrls::class)->frontend($site);
     }
 
     #[Computed]
@@ -82,6 +98,16 @@ class SiteTheme extends ThemeManager
     }
 
     public function refreshLicenseStatus(string $licenseSlug): void {}
+
+    /**
+     * Rollback belongs to the installation's theme (config/theme.php).
+     */
+    public function canRollback(): bool
+    {
+        return false;
+    }
+
+    public function rollbackTheme(): void {}
 
     /**
      * The theme cache belongs to the installation.

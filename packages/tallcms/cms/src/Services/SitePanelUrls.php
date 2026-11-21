@@ -78,6 +78,19 @@ class SitePanelUrls
     }
 
     /**
+     * The site's public address, for "open website" links in the site panel:
+     * the site's domain with the scheme and (non-default) port of the panel
+     * request, so it also works on a development server.
+     */
+    public function frontend(Site $site): string
+    {
+        $port = request()->getPort();
+        $port = in_array($port, [80, 443], true) ? '' : ':'.$port;
+
+        return request()->getScheme().'://'.$site->domain.$port;
+    }
+
+    /**
      * The panel that registers SitePanelPlugin, if any.
      */
     public function sitePanel(): ?Panel

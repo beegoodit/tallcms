@@ -93,6 +93,10 @@ class ThemeManager extends Page implements HasForms
 
     public bool $showLanguageDropdown = true;
 
+    private bool $multisiteContextResolved = false;
+
+    private ?object $multisiteContext = null;
+
     public function mount(): void
     {
         $this->refreshLicenseStatuses();
@@ -280,6 +284,20 @@ class ThemeManager extends Page implements HasForms
      * @return ?stdClass with columns: id, name, domain, theme, etc.
      */
     protected function getMultisiteContext(): ?object
+    {
+        if (! $this->multisiteContextResolved) {
+            $this->multisiteContext = $this->resolveMultisiteContext();
+            $this->multisiteContextResolved = true;
+        }
+
+        return $this->multisiteContext;
+    }
+
+    /**
+     * Looks the site up; getMultisiteContext() keeps the answer for the
+     * request (the view asks once per theme card), until clearThemeCache().
+     */
+    protected function resolveMultisiteContext(): ?object
     {
         $sessionValue = session('multisite_admin_site_id');
 
@@ -607,6 +625,10 @@ class ThemeManager extends Page implements HasForms
 
     protected function clearThemeCache(): void
     {
+        // The site row carries the active theme, so look it up again
+        $this->multisiteContextResolved = false;
+        $this->multisiteContext = null;
+
         unset($this->themes);
         unset($this->filteredThemes);
         unset($this->activeTheme);
