@@ -6,6 +6,7 @@ namespace TallCms\Cms;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Illuminate\Support\Facades\Log;
 use TallCms\Cms\Filament\Concerns\RegistersTranslatablePlugin;
 use TallCms\Cms\Filament\Concerns\TogglesContentResources;
 use TallCms\Cms\Filament\Pages\MenuItemsManager;
@@ -21,6 +22,7 @@ use TallCms\Cms\Filament\Resources\TallcmsContactSubmissions\TallcmsContactSubmi
 use TallCms\Cms\Filament\Resources\TallcmsMedia\TallcmsMediaResource;
 use TallCms\Cms\Filament\Resources\TallcmsMenus\TallcmsMenuResource;
 use TallCms\Cms\Models\Site;
+use TallCms\Cms\Services\PluginManager;
 
 /**
  * The site panel (e.g. /admin/sites/{uuid}): one site's backend, the site as
@@ -34,6 +36,10 @@ use TallCms\Cms\Models\Site;
  * Content resources are registered here one by one, not through
  * TallCmsPlugin, which also brings platform pages, Shield and every installed
  * plugin. The host switches them off as on TallCmsPlugin (withoutMenus(), ...).
+ *
+ * Of the installed plugins, only those that declare they work per site
+ * (plugin.json "site_panel": true) are added; a host that lists its panel's
+ * plugins itself calls withoutInstalledPlugins().
  */
 class SitePanelPlugin implements Plugin
 {
@@ -41,6 +47,8 @@ class SitePanelPlugin implements Plugin
     use TogglesContentResources;
 
     public const ID = 'tallcms-site';
+
+    protected bool $hasInstalledPlugins = true;
 
     public static function make(): static
     {
@@ -52,6 +60,16 @@ class SitePanelPlugin implements Plugin
         return self::ID;
     }
 
+    /**
+     * Do not add the installed per-site plugins; the host adds what it wants.
+     */
+    public function withoutInstalledPlugins(): static
+    {
+        $this->hasInstalledPlugins = false;
+
+        return $this;
+    }
+
     public function register(Panel $panel): void
     {
         $panel
@@ -60,6 +78,28 @@ class SitePanelPlugin implements Plugin
             ->resources($this->getResources());
 
         $this->registerTranslatablePlugin($panel);
+        $this->registerInstalledPlugins($panel);
+    }
+
+    /**
+     * Add the installed plugins that work per site. As in TallCmsPlugin, a
+     * failure here must not take the panel down.
+     */
+    protected function registerInstalledPlugins(Panel $panel): void
+    {
+        if (! $this->hasInstalledPlugins || ! config('tallcms.plugin_mode.plugins_enabled', true)) {
+            return;
+        }
+
+        try {
+            foreach (app(PluginManager::class)->getSitePanelFilamentPlugins() as $filamentPlugin) {
+                $panel->plugin($filamentPlugin);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to register installed plugin Filament plugins in the site panel', [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

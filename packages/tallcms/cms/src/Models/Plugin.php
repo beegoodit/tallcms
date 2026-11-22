@@ -37,6 +37,12 @@ class Plugin
 
     public string $licenseScope = 'installation';
 
+    /**
+     * plugin.json "site_panel": the plugin works per site and is offered in
+     * the site panel. Not a licence statement (see license_scope for that).
+     */
+    public bool $sitePanel = false;
+
     public function __construct(array $data, string $path)
     {
         $this->name = $data['name'] ?? 'Untitled Plugin';
@@ -51,6 +57,7 @@ class Plugin
         $this->tags = $data['tags'] ?? [];
         $this->licenseRequired = (bool) ($data['license_required'] ?? false);
         $this->licenseScope = $data['license_scope'] ?? 'installation';
+        $this->sitePanel = ($data['site_panel'] ?? false) === true;
         $this->path = $path;
 
         // Store compatibility info in extras
@@ -349,6 +356,15 @@ class Plugin
     public function hasFilamentPlugin(): bool
     {
         return ! empty($this->filamentPlugin);
+    }
+
+    /**
+     * Whether the plugin declares that it works per site (plugin.json
+     * "site_panel": true) and brings a Filament plugin to show there.
+     */
+    public function worksInSitePanel(): bool
+    {
+        return $this->sitePanel && $this->hasFilamentPlugin();
     }
 
     /**

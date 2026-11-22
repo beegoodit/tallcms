@@ -459,13 +459,41 @@ class PluginManager
      */
     public function getFilamentPlugins(): array
     {
+        return $this->instantiateFilamentPlugins(
+            $this->getInstalledPlugins()->filter(fn (Plugin $plugin): bool => $plugin->hasFilamentPlugin())
+        );
+    }
+
+    /**
+     * Filament plugin instances for the site panel: of the installed plugins
+     * that declare they work per site (plugin.json "site_panel": true).
+     *
+     * The one place that decides which plugins a site panel offers. A panel's
+     * plugins are registered before the site of a request is known, so a rule
+     * that differs between sites (what a team has booked, a licence per site)
+     * has to be checked per request and belongs next to this method.
+     *
+     * @return array<\Filament\Contracts\Plugin>
+     */
+    public function getSitePanelFilamentPlugins(): array
+    {
+        return $this->instantiateFilamentPlugins(
+            $this->getInstalledPlugins()->filter(fn (Plugin $plugin): bool => $plugin->worksInSitePanel())
+        );
+    }
+
+    /**
+     * A plugin whose class is missing or cannot be built is logged and left
+     * out, so one broken plugin does not take the panel down.
+     *
+     * @param  iterable<Plugin>  $plugins
+     * @return array<\Filament\Contracts\Plugin>
+     */
+    protected function instantiateFilamentPlugins(iterable $plugins): array
+    {
         $filamentPlugins = [];
 
-        foreach ($this->getInstalledPlugins() as $plugin) {
-            if (! $plugin->hasFilamentPlugin()) {
-                continue;
-            }
-
+        foreach ($plugins as $plugin) {
             if (! class_exists($plugin->filamentPlugin)) {
                 Log::warning("Filament plugin class not found: {$plugin->filamentPlugin}", [
                     'plugin' => $plugin->getFullSlug(),
