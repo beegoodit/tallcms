@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use TallCms\Cms\Contracts\SiteAccess;
+use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Mail\ContactFormAdminNotification;
 use TallCms\Cms\Mail\ContactFormAutoReply;
 use TallCms\Cms\Models\Site;
@@ -244,13 +245,21 @@ class ContactFormController extends Controller
      * at render time (e.g. a site owner typed "Thanks! " into the Auto-Reply
      * Message textarea) hashes differently on each side and every submission
      * fails with "Invalid form configuration."
+     *
+     * The site the form is rendered on is signed as well, so a form of one
+     * site is refused on another site's address: the page URL is sent by the
+     * browser and proves nothing about where the request arrived. Without a
+     * site (no multisite, an unknown host) the payload is as it always was.
      */
     public static function signConfig(array $config, string $pageUrl = ''): string
     {
+        $siteId = app(SiteContext::class)->currentSiteId();
+
         $payload = json_encode([
             'v' => self::SCHEMA_VERSION,
             'url' => $pageUrl,
             'config' => self::normalizeConfigForSigning($config),
+            ...($siteId !== null ? ['site' => $siteId] : []),
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         return hash_hmac('sha256', $payload, config('app.key'));

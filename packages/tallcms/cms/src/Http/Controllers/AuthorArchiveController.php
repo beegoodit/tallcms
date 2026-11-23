@@ -43,6 +43,11 @@ class AuthorArchiveController extends Controller
         // 404 if author not found
         abort_unless($author, 404);
 
+        // An author page belongs to someone who published here: a user
+        // without a published post on this site has none, whoever they are
+        // elsewhere in the installation.
+        abort_unless(CmsPost::where('author_id', $author->getKey())->published()->exists(), 404);
+
         $perPage = config('tallcms.archive.per_page', 12);
 
         $posts = CmsPost::where('author_id', $author->getKey())

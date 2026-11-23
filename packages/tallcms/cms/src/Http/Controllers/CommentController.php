@@ -75,9 +75,13 @@ class CommentController extends Controller
         $post = CmsPost::withoutGlobalScopes()->published()->find($request->input('post_id'));
         // A post is a site's: on a site's pages only its own posts take
         // comments. Checked here because the lookup above ignores the scopes.
+        // "No site" is a site like any other: a post without one takes no
+        // comments on a site's address, nor a site's post on an unknown host.
         $siteId = app(\TallCms\Cms\Contracts\SiteContext::class)->currentSiteId();
 
-        if (! $post || ($siteId !== null && $post->site_id !== null && (int) $post->site_id !== $siteId)) {
+        $postSiteId = $post?->site_id !== null ? (int) $post->site_id : null;
+
+        if (! $post || $postSiteId !== $siteId) {
             return response()->json([
                 'errors' => ['post_id' => ['The selected post is not available for comments.']],
             ], 422);
