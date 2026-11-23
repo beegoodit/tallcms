@@ -18,10 +18,10 @@ use TallCms\Cms\Models\Site;
  * Child records (comments, revisions, preview tokens) override
  * siteIdForNewRecord() to take their parent's site instead.
  *
- * Models listed in config('tallcms.sites.unassigned_models') keep site_id
- * empty on create (the multisite plugin's user-owned content, until the
- * content migration assigns it), except in a site panel: there they belong
- * to the tenant like any site-owned content.
+ * A host can list models in config('tallcms.sites.unassigned_models'): they
+ * get a site only in a site panel and are not refused without one. Core and
+ * the multisite plugin list none: posts, categories, media and collections
+ * are a site's like pages and menus.
  */
 trait BelongsToSite
 {

@@ -72,7 +72,11 @@ class CommentController extends Controller
         // frontend via AJAX on an API route — SiteScope may not resolve
         // correctly outside the web middleware group.
         $post = CmsPost::withoutGlobalScopes()->published()->find($request->input('post_id'));
-        if (! $post) {
+        // A post is a site's: on a site's pages only its own posts take
+        // comments. Checked here because the lookup above ignores the scopes.
+        $siteId = app(\TallCms\Cms\Contracts\SiteContext::class)->currentSiteId();
+
+        if (! $post || ($siteId !== null && $post->site_id !== null && (int) $post->site_id !== $siteId)) {
             return response()->json([
                 'errors' => ['post_id' => ['The selected post is not available for comments.']],
             ], 422);

@@ -234,7 +234,7 @@ class ScopesQueryToOwnedSitesTest extends TestCase
         $this->assertCount(2, GlobalScopedHost::scope(GlobalRecord::query())->get());
     }
 
-    public function test_owned_by_user_filters_by_user_id(): void
+    public function test_who_created_a_record_does_not_decide_who_sees_it(): void
     {
         $user = $this->makeUser('alice');
         $this->actingAs($user);
@@ -246,17 +246,15 @@ class ScopesQueryToOwnedSitesTest extends TestCase
 
         $labels = OwnedByUserHost::scope(SingleSiteRecord::query())->pluck('label')->all();
 
-        $this->assertSame(['mine'], $labels);
+        // No site_id on the table: nothing to scope by, user_id is not used.
+        $this->assertEqualsCanonicalizing(['mine', 'theirs'], $labels);
     }
 
-    public function test_owned_by_user_does_not_filter_by_site_id_in_multisite(): void
+    public function test_posts_and_media_are_the_current_sites_whoever_created_them(): void
     {
-        // Regression guard for the multisite plugin's intentional design:
-        // Posts/Categories/Media/Collections are USER-OWNED, not site-bound,
-        // and site_id is deliberately left NULL on creation. A previous
-        // implementation filtered these by site_id IN (owned sites) when
-        // multisite was active, which made a user's own freshly-created
-        // records invisible to themselves (their own post had site_id=NULL).
+        // Posts, categories, media and collections are a site's like pages
+        // (805/028): the current site's records, a colleague's included, and
+        // none without a site or of another site.
         $this->activateFakeMultisite();
         $user = $this->makeUser('alice');
         $this->actingAs($user);
@@ -267,13 +265,52 @@ class ScopesQueryToOwnedSitesTest extends TestCase
         DB::table('multisite_records_with_user_id')->insert([
             ['site_id' => null, 'user_id' => $user->id, 'label' => 'mine-no-site', 'created_at' => now(), 'updated_at' => now()],
             ['site_id' => 10, 'user_id' => $user->id, 'label' => 'mine-with-site', 'created_at' => now(), 'updated_at' => now()],
-            ['site_id' => 10, 'user_id' => 999, 'label' => 'theirs', 'created_at' => now(), 'updated_at' => now()],
+            ['site_id' => 10, 'user_id' => 999, 'label' => 'colleague', 'created_at' => now(), 'updated_at' => now()],
+            ['site_id' => 20, 'user_id' => $user->id, 'label' => 'mine-other-site', 'created_at' => now(), 'updated_at' => now()],
         ]);
+
+        $this->bindSiteContext(currentSiteId: 10);
 
         $labels = OwnedByUserHost::scope(MultisiteRecordWithUserId::query())->pluck('label')->all();
 
-        // Both of the user's records, regardless of site_id state.
-        $this->assertEqualsCanonicalizing(['mine-no-site', 'mine-with-site'], $labels);
+        $this->assertEqualsCanonicalizing(['mine-with-site', 'colleague'], $labels);
+    }
+
+    public function test_without_a_current_site_only_a_super_admin_sees_posts_and_media(): void
+    {
+        $this->activateFakeMultisite();
+        $user = $this->makeUser('alice');
+
+        DB::table('multisite_records_with_user_id')->insert([
+            ['site_id' => 10, 'user_id' => $user->id, 'label' => 'mine', 'created_at' => now(), 'updated_at' => now()],
+            ['site_id' => 20, 'user_id' => 999, 'label' => 'theirs', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        $this->bindSiteContext(currentSiteId: null);
+
+        $this->actingAs($user);
+        $this->assertSame([], OwnedByUserHost::scope(MultisiteRecordWithUserId::query())->pluck('label')->all());
+
+        $this->actingAs($this->makeUser('admin', superAdmin: true));
+        $this->assertCount(2, OwnedByUserHost::scope(MultisiteRecordWithUserId::query())->get());
+    }
+
+    private function bindSiteContext(?int $currentSiteId): void
+    {
+        $this->app->instance(\TallCms\Cms\Contracts\SiteContext::class, new class($currentSiteId) implements \TallCms\Cms\Contracts\SiteContext
+        {
+            public function __construct(private ?int $siteId) {}
+
+            public function currentSiteId(): ?int
+            {
+                return $this->siteId;
+            }
+
+            public function tenantSiteId(): ?int
+            {
+                return null;
+            }
+        });
     }
 
     public function test_owned_by_user_passes_through_when_no_user_id_column(): void

@@ -112,8 +112,8 @@ class UniqueTranslatableSlug implements ValidationRule
     /**
      * Apply the appropriate ownership filter based on the table type.
      *
-     * User-owned tables (posts, categories): scope by user_id or auth user.
-     * Site-owned tables (pages): scope by site_id via session/resolver.
+     * Pages, posts and categories are a site's: a slug is unique within
+     * the site.
      */
     protected function applyScopeFilter($query): void
     {
@@ -126,17 +126,8 @@ class UniqueTranslatableSlug implements ValidationRule
             return;
         }
 
-        // Check if table is user-owned (has user_id column)
-        $isUserOwned = \Illuminate\Support\Facades\Schema::hasColumn($this->table, 'user_id');
-
-        if ($isUserOwned && auth()->check()) {
-            $ownerColumn = $this->table === 'tallcms_posts' ? 'user_id' : 'user_id';
-            $query->where($ownerColumn, auth()->id());
-
-            return;
-        }
-
-        // Site-owned: scope by site_id. Prefer an explicit siteId passed into
+        // Everything else is unique per site too (posts and categories are a
+        // site's like pages): scope by site_id. Prefer an explicit siteId passed into
         // the rule — authoritative when the form knows which site the record
         // belongs to (existing record's site_id, or create form's ownerSiteId).
         $siteId = $this->siteId;

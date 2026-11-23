@@ -542,9 +542,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Site-owned content gets its site_id on create from the current site
-    | (TallCms\Cms\Contracts\SiteContext). Models listed in
-    | unassigned_models keep site_id empty instead; the multisite plugin lists
-    | its user-owned content. model is the class site() relations return; the
+    | (TallCms\Cms\Contracts\SiteContext). Models a host lists in
+    | unassigned_models keep site_id empty outside a site panel; none are
+    | listed by default. model is the class site() relations return; the
     | multisite plugin sets its own subclass.
     |
     */

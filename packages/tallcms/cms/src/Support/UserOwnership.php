@@ -9,44 +9,53 @@ use Illuminate\Support\Facades\Schema;
 use TallCms\Cms\Contracts\SiteContext;
 
 /**
- * The records of user-owned content (posts, categories, media, collections)
- * a user works with: their own in /admin, the tenant's in a site panel.
+ * The posts, categories, media and collections a user works with in a panel:
+ * those of the current site.
  *
- * In a site panel the records belong to the tenant (site_id stamped on
- * create), so the user_id filter would only hide the colleagues' records.
- * The tenant filter is applied here explicitly: Filament's own tenant scope
- * exists only for models whose resource is registered in the panel, and a
- * host may switch a resource off.
+ * They belong to a site like pages and menus; who created a record (user_id)
+ * does not decide who sees it. In a site panel the site is the tenant. In a
+ * panel without a tenant it is the installation's site when there is exactly
+ * that one (SiteContext), and none on a multisite installation: there nobody
+ * sees these records except a super admin, who sees all sites'.
+ *
+ * The filter is applied here explicitly: Filament's own tenant scope exists
+ * only for models whose resource is registered in the panel, and a host may
+ * switch a resource off.
  */
 class UserOwnership
 {
     public static function scope(Builder $query): Builder
     {
-        if (app(SiteContext::class)->tenantSiteId() !== null) {
+        $context = app(SiteContext::class);
+
+        if ($context->tenantSiteId() !== null) {
             return static::scopeToTenant($query);
-        }
-
-        $user = auth()->user();
-
-        if (! $user) {
-            return $query;
-        }
-
-        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
-            return $query;
         }
 
         $table = $query->getModel()->getTable();
 
         try {
-            if (Schema::hasColumn($table, 'user_id')) {
-                return $query->where($table.'.user_id', $user->getAuthIdentifier());
+            if (! Schema::hasColumn($table, 'site_id')) {
+                return $query;
             }
         } catch (\Throwable) {
             // Schema not yet migrated.
+            return $query;
         }
 
-        return $query;
+        $siteId = $context->currentSiteId();
+
+        if ($siteId !== null) {
+            return $query->where($table.'.site_id', $siteId);
+        }
+
+        $user = auth()->user();
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     /**
