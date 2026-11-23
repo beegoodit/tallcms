@@ -14,6 +14,7 @@ use TallCms\Cms\Models\CmsComment;
 use TallCms\Cms\Models\CmsPost;
 use TallCms\Cms\Notifications\NewCommentNotification;
 use TallCms\Cms\Support\NotificationDispatcher;
+use TallCms\Cms\Support\SiteUsers;
 
 class CommentController extends Controller
 {
@@ -173,7 +174,7 @@ class CommentController extends Controller
     {
         try {
             $userModel = config('tallcms.plugin_mode.user_model', \App\Models\User::class);
-            $approvers = $userModel::permission('Approve:CmsComment')->get();
+            $approvers = SiteUsers::withPermission($userModel, 'Approve:CmsComment', $comment->site_id);
 
             foreach ($approvers as $approver) {
                 // Skip self-notification

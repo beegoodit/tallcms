@@ -145,6 +145,11 @@ class SitePanelTest extends TestCase
             {
                 return $users;
             }
+
+            public function contactUser(Site $site): ?Authenticatable
+            {
+                return null;
+            }
         });
         $user = $this->createUser();
 

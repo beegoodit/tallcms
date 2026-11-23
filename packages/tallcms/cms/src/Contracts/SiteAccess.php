@@ -33,4 +33,10 @@ interface SiteAccess
      * @return Builder<\Illuminate\Database\Eloquent\Model>
      */
     public function scopeUsers(Builder $users, Site $site): Builder;
+
+    /**
+     * The one user to reach about a site that names no address of its own
+     * (e.g. for contact form mail). Null when the site has none.
+     */
+    public function contactUser(Site $site): ?Authenticatable;
 }

@@ -35,6 +35,14 @@ class DefaultSiteAccess implements SiteAccess
     }
 
     /**
+     * Without the multisite plugin the installation's contact address is used.
+     */
+    public function contactUser(Site $site): ?Authenticatable
+    {
+        return null;
+    }
+
+    /**
      * @return class-string<Site>
      */
     protected function siteModel(): string

@@ -14,8 +14,10 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Mail\ContactFormAdminNotification;
 use TallCms\Cms\Mail\ContactFormAutoReply;
+use TallCms\Cms\Models\Site;
 use TallCms\Cms\Models\SiteSetting;
 use TallCms\Cms\Models\TallcmsContactSubmission;
 use TallCms\Cms\Services\BlockLinkResolver;
@@ -398,8 +400,9 @@ class ContactFormController extends Controller
      *
      * Chain, most-specific first:
      *   1. Site-specific override (the site_owner set contact_email in Site Settings).
-     *   2. Site owner's user email (SaaS default: submissions route to the person
-     *      who owns the site, even before they've configured anything).
+     *   2. The site's contact user (SiteAccess::contactUser(); with the multisite
+     *      plugin the owner of the site's team), so submissions reach a person
+     *      of the site even before they have configured anything.
      *   3. Global contact_email setting (the installation-wide fallback).
      *   4. null — caller should skip the send.
      *
@@ -407,8 +410,8 @@ class ContactFormController extends Controller
      * which only checks the override→global pair. On SaaS installs that had
      * a "dummy" global contact_email (e.g., noreply@the-install.test), every
      * cloned site inherited that dummy as its admin recipient — so the site
-     * owner never saw their own form submissions. Inserting the site owner's
-     * user email between the override and the global closes that gap.
+     * owner never saw their own form submissions. Inserting the site's contact
+     * user between the override and the global closes that gap.
      */
     public static function resolveAdminRecipient(): ?string
     {
@@ -440,15 +443,16 @@ class ContactFormController extends Controller
             }
         }
 
-        // 2. Site owner's user email (SaaS-friendly default)
-        if ($siteId && Schema::hasTable('tallcms_sites') && Schema::hasTable('users')) {
+        // 2. The site's contact user, as SiteAccess names them
+        if ($siteId) {
             try {
-                $ownerEmail = DB::table('tallcms_sites')
-                    ->join('users', 'users.id', '=', 'tallcms_sites.user_id')
-                    ->where('tallcms_sites.id', $siteId)
-                    ->value('users.email');
-                if ($ownerEmail) {
-                    return $ownerEmail;
+                $siteModel = config('tallcms.sites.model', Site::class);
+                $site = $siteModel::query()->withoutGlobalScopes()->find($siteId);
+                $contactEmail = $site instanceof Site
+                    ? app(SiteAccess::class)->contactUser($site)?->getAttribute('email')
+                    : null;
+                if ($contactEmail) {
+                    return $contactEmail;
                 }
             } catch (\Throwable) {
                 // Ignore and fall through

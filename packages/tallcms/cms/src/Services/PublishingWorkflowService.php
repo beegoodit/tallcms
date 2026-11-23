@@ -13,6 +13,7 @@ use TallCms\Cms\Notifications\ContentApprovedNotification;
 use TallCms\Cms\Notifications\ContentRejectedNotification;
 use TallCms\Cms\Notifications\ContentSubmittedForReviewNotification;
 use TallCms\Cms\Support\NotificationDispatcher;
+use TallCms\Cms\Support\SiteUsers;
 
 class PublishingWorkflowService
 {
@@ -76,28 +77,13 @@ class PublishingWorkflowService
     }
 
     /**
-     * Notify users with approval permission
+     * Notify the users of the content's site who may approve it.
      */
     protected function notifyApprovers(Model $content): void
     {
         $permission = $this->getApprovePermission($content);
 
-        $userModel = $this->getUserModel();
-        $approvers = $userModel::permission($permission)->get();
-
-        // In multisite, scope to users who have access to the content's site.
-        // Pre-teams: super-admins + the site owner only.
-        $siteId = $content->site_id ?? null;
-        if ($siteId && class_exists('Tallcms\Multisite\Models\Site')) {
-            try {
-                $siteOwnerId = DB::table('tallcms_sites')->where('id', $siteId)->value('user_id');
-                $approvers = $approvers->filter(function ($approver) use ($siteOwnerId) {
-                    return $approver->hasRole('super_admin') || $approver->id === $siteOwnerId;
-                });
-            } catch (\Throwable) {
-                // Multisite table not available — send to all approvers
-            }
-        }
+        $approvers = SiteUsers::withPermission($this->getUserModel(), $permission, $content->site_id ?? null);
 
         foreach ($approvers as $approver) {
             // Don't notify the submitter

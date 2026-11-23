@@ -6,6 +6,7 @@ namespace TallCms\Cms\Support;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Models\Site;
@@ -15,6 +16,8 @@ use TallCms\Cms\Models\Site;
  * selects): in a site panel the users of the tenant (SiteAccess::scopeUsers()),
  * the record's current author, so existing content keeps saving, and the
  * user at work. Outside a site panel every user, as before.
+ *
+ * And the users to notify about a record of a site: withPermission().
  */
 class SiteUsers
 {
@@ -42,5 +45,37 @@ class SiteUsers
         return $users->where(function (Builder $query) use ($key, $ofSite, $always): void {
             $query->whereIn($key, $ofSite)->orWhereIn($key, $always);
         });
+    }
+
+    /**
+     * The users of a site who hold a permission, to notify them about one of
+     * its records: those who belong to the site and may open it. A super
+     * admin who does not belong to the site is not among them, and neither is
+     * anyone when the record has no site, so nothing about a site reaches
+     * users of another one.
+     *
+     * @param  class-string<Model>  $userModel
+     * @return Collection<int, Model>
+     */
+    public static function withPermission(string $userModel, string $permission, mixed $siteId): Collection
+    {
+        if ($siteId === null) {
+            return collect();
+        }
+
+        $siteModel = config('tallcms.sites.model', Site::class);
+        $site = $siteModel::query()->withoutGlobalScopes()->find($siteId);
+
+        if (! $site instanceof Site) {
+            return collect();
+        }
+
+        $access = app(SiteAccess::class);
+
+        return $access
+            ->scopeUsers($userModel::permission($permission), $site)
+            ->get()
+            ->filter(fn (Model $user): bool => $access->canAccess($user, $site))
+            ->values();
     }
 }
