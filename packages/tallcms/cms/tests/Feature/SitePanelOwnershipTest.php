@@ -10,12 +10,15 @@ use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
+use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Models\Site;
 use TallCms\Cms\Policies\Concerns\ChecksSiteOwnership;
+use TallCms\Cms\Tests\Fixtures\SiteAccessByList;
 use TallCms\Cms\Tests\TestCase;
 
 /**
- * Content checks in a site panel go by the tenant, outside by sites.user_id (805/012).
+ * Content checks in a site panel go by the tenant, outside by SiteAccess;
+ * the user stored on a site grants nothing (805/012, 805/030).
  */
 class SitePanelOwnershipTest extends TestCase
 {
@@ -52,12 +55,18 @@ class SitePanelOwnershipTest extends TestCase
         $this->assertFalse($this->ownership()->owns($this->editor, $this->otherSite->id));
     }
 
-    public function test_outside_a_site_panel_the_site_owner_decides(): void
+    public function test_outside_a_site_panel_site_access_decides_not_the_user_stored_on_the_site(): void
     {
-        $this->otherSite->forceFill(['user_id' => $this->editor->getAuthIdentifier()])->save();
+        $this->tenantSite->forceFill(['user_id' => $this->editor->getAuthIdentifier()])->save();
+        $this->app->instance(SiteAccess::class, new SiteAccessByList([42 => [$this->otherSite->id]]));
 
         $this->assertFalse($this->ownership()->owns($this->editor, $this->tenantSite->id));
         $this->assertTrue($this->ownership()->owns($this->editor, $this->otherSite->id));
+    }
+
+    public function test_outside_a_site_panel_a_record_without_a_site_is_refused(): void
+    {
+        $this->assertFalse($this->ownership()->owns($this->editor, null));
     }
 
     private function inSitePanelOf(Site $site): void
@@ -73,7 +82,7 @@ class SitePanelOwnershipTest extends TestCase
 
             public function owns(Authenticatable $user, ?int $siteId): bool
             {
-                return $this->userOwnsContentSite($user, $siteId);
+                return $this->userMayAccessContentSite($user, $siteId);
             }
         };
     }

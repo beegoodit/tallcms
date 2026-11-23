@@ -21,7 +21,7 @@ class MediaCollectionPolicy
 
     public function view(Authenticatable $user, MediaCollection $collection): bool
     {
-        return $user->can('View:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $collection);
+        return $user->can('View:TallcmsMedia') && $this->userMayAccessContentSite($user, $collection->site_id);
     }
 
     public function create(Authenticatable $user): bool
@@ -31,29 +31,11 @@ class MediaCollectionPolicy
 
     public function update(Authenticatable $user, MediaCollection $collection): bool
     {
-        return $user->can('Update:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $collection);
+        return $user->can('Update:TallcmsMedia') && $this->userMayAccessContentSite($user, $collection->site_id);
     }
 
     public function delete(Authenticatable $user, MediaCollection $collection): bool
     {
-        return $user->can('Delete:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $collection);
-    }
-
-    protected function ownsOrSuperAdmin(Authenticatable $user, MediaCollection $collection): bool
-    {
-        $inTenantSite = $this->recordIsInTenantSite($collection->site_id === null ? null : (int) $collection->site_id);
-        if ($inTenantSite !== null) {
-            return $inTenantSite;
-        }
-
-        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
-            return true;
-        }
-
-        if (isset($collection->user_id) && $collection->user_id !== null) {
-            return $collection->user_id === $user->getAuthIdentifier();
-        }
-
-        return true;
+        return $user->can('Delete:TallcmsMedia') && $this->userMayAccessContentSite($user, $collection->site_id);
     }
 }

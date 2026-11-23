@@ -12,10 +12,8 @@ use TallCms\Cms\Policies\Concerns\ChecksSiteOwnership;
 /**
  * TallcmsContactSubmission authorization.
  *
- * Shield controls role-level access; record-scoped methods layer a
- * site-ownership check so a site_owner only sees their own site's form
- * submissions. Single-site installs bypass the ownership check via the
- * trait's multisiteScopingActive() gate.
+ * Shield controls role-level access; record-scoped methods add the site
+ * check, so a user only sees the form submissions of sites they may work in.
  */
 class TallcmsContactSubmissionPolicy
 {
@@ -29,7 +27,7 @@ class TallcmsContactSubmissionPolicy
     public function view(Authenticatable $user, TallcmsContactSubmission $tallcmsContactSubmission): bool
     {
         return $user->can('View:TallcmsContactSubmission')
-            && $this->userOwnsContentSite($user, $tallcmsContactSubmission->site_id);
+            && $this->userMayAccessContentSite($user, $tallcmsContactSubmission->site_id);
     }
 
     public function create(Authenticatable $user): bool
@@ -40,25 +38,25 @@ class TallcmsContactSubmissionPolicy
     public function update(Authenticatable $user, TallcmsContactSubmission $tallcmsContactSubmission): bool
     {
         return $user->can('Update:TallcmsContactSubmission')
-            && $this->userOwnsContentSite($user, $tallcmsContactSubmission->site_id);
+            && $this->userMayAccessContentSite($user, $tallcmsContactSubmission->site_id);
     }
 
     public function delete(Authenticatable $user, TallcmsContactSubmission $tallcmsContactSubmission): bool
     {
         return $user->can('Delete:TallcmsContactSubmission')
-            && $this->userOwnsContentSite($user, $tallcmsContactSubmission->site_id);
+            && $this->userMayAccessContentSite($user, $tallcmsContactSubmission->site_id);
     }
 
     public function restore(Authenticatable $user, TallcmsContactSubmission $tallcmsContactSubmission): bool
     {
         return $user->can('Restore:TallcmsContactSubmission')
-            && $this->userOwnsContentSite($user, $tallcmsContactSubmission->site_id);
+            && $this->userMayAccessContentSite($user, $tallcmsContactSubmission->site_id);
     }
 
     public function forceDelete(Authenticatable $user, TallcmsContactSubmission $tallcmsContactSubmission): bool
     {
         return $user->can('ForceDelete:TallcmsContactSubmission')
-            && $this->userOwnsContentSite($user, $tallcmsContactSubmission->site_id);
+            && $this->userMayAccessContentSite($user, $tallcmsContactSubmission->site_id);
     }
 
     public function forceDeleteAny(Authenticatable $user): bool
@@ -74,7 +72,7 @@ class TallcmsContactSubmissionPolicy
     public function replicate(Authenticatable $user, TallcmsContactSubmission $tallcmsContactSubmission): bool
     {
         return $user->can('Replicate:TallcmsContactSubmission')
-            && $this->userOwnsContentSite($user, $tallcmsContactSubmission->site_id);
+            && $this->userMayAccessContentSite($user, $tallcmsContactSubmission->site_id);
     }
 
     public function reorder(Authenticatable $user): bool

@@ -24,7 +24,7 @@ class InsertMediaAction
             ->schema(fn (): array => [
                 View::make('tallcms::filament.forms.components.media-library-picker')
                     ->viewData(fn () => [
-                        'media' => UserOwnership::scopeToTenant(TallcmsMedia::where('mime_type', 'like', 'image/%'))
+                        'media' => UserOwnership::scope(TallcmsMedia::where('mime_type', 'like', 'image/%'))
                             ->latest()
                             ->limit(100)
                             ->get(),
@@ -35,7 +35,7 @@ class InsertMediaAction
                     ->placeholder(__('tallcms::fields.alt_text_placeholder')),
             ])
             ->action(function (array $arguments, array $data, RichEditor $component): void {
-                $media = UserOwnership::scopeToTenant(TallcmsMedia::query())->find($data['selected_media_id']);
+                $media = UserOwnership::scope(TallcmsMedia::query())->find($data['selected_media_id']);
 
                 if (! $media) {
                     return;

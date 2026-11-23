@@ -11,9 +11,11 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
 use TallCms\Cms\Filament\Resources\Concerns\ScopesQueryToOwnedSites;
 use TallCms\Cms\Models\CmsPage;
+use TallCms\Cms\Tests\Fixtures\SiteAccessByList;
 use TallCms\Cms\Tests\TestCase;
 
 /**
@@ -160,16 +162,18 @@ class ScopesQueryToOwnedSitesTest extends TestCase
         $this->assertCount(2, MultisiteScopedHost::scope(MultisiteRecord::query())->get());
     }
 
-    public function test_owner_only_sees_records_on_their_sites(): void
+    public function test_a_user_only_sees_records_of_the_sites_they_may_access(): void
     {
         $this->activateFakeMultisite();
-        $owner = $this->makeUser('owner');
+        $member = $this->makeUser('member');
         $other = $this->makeUser('other');
-        $this->actingAs($owner);
+        $this->actingAs($member);
+        $this->app->instance(SiteAccess::class, new SiteAccessByList([$member->id => [10]]));
 
+        // The user stored on a site grants nothing: site 20 names the member.
         DB::table('tallcms_sites')->insert([
-            ['id' => 10, 'user_id' => $owner->id, 'name' => 'Owner Site'],
-            ['id' => 20, 'user_id' => $other->id, 'name' => 'Other Site'],
+            ['id' => 10, 'user_id' => $other->id, 'name' => 'Member Site'],
+            ['id' => 20, 'user_id' => $member->id, 'name' => 'Other Site'],
         ]);
         DB::table('multisite_records')->insert([
             ['site_id' => 10, 'label' => 'mine-1', 'created_at' => now(), 'updated_at' => now()],
@@ -182,14 +186,15 @@ class ScopesQueryToOwnedSitesTest extends TestCase
         $this->assertEqualsCanonicalizing(['mine-1', 'mine-2'], $labels);
     }
 
-    public function test_user_with_no_owned_sites_gets_zero_rows(): void
+    public function test_a_user_without_access_to_any_site_gets_zero_rows(): void
     {
         $this->activateFakeMultisite();
         $loner = $this->makeUser('loner');
         $this->actingAs($loner);
+        $this->app->instance(SiteAccess::class, new SiteAccessByList([]));
 
         DB::table('tallcms_sites')->insert([
-            ['id' => 10, 'user_id' => 999, 'name' => 'Other'],
+            ['id' => 10, 'user_id' => $loner->id, 'name' => 'Stored user only'],
         ]);
         DB::table('multisite_records')->insert([
             ['site_id' => 10, 'label' => 'theirs', 'created_at' => now(), 'updated_at' => now()],
@@ -198,17 +203,17 @@ class ScopesQueryToOwnedSitesTest extends TestCase
         $this->assertCount(0, MultisiteScopedHost::scope(MultisiteRecord::query())->get());
     }
 
-    public function test_passes_through_when_site_id_column_exists_but_multisite_not_active(): void
+    public function test_without_a_plugin_deciding_access_every_sites_records_are_listed(): void
     {
-        // No activateFakeMultisite() call: multisite plugin is NOT booted.
-        // This is the regression guard for the case the reviewer flagged —
-        // a host with leftover site_id columns but multisite uninstalled
-        // must not filter normal admins to zero rows.
+        // Core's default SiteAccess: every user may work in every site. A
+        // host with site_id columns but no multisite plugin must not filter
+        // its users to zero rows.
         $user = $this->makeUser('alice');
         $this->actingAs($user);
 
         DB::table('tallcms_sites')->insert([
-            ['id' => 10, 'user_id' => 999, 'name' => 'Other'],
+            ['id' => 10, 'user_id' => 999, 'name' => 'One'],
+            ['id' => 20, 'user_id' => 999, 'name' => 'Two'],
         ]);
         DB::table('multisite_records')->insert([
             ['site_id' => 10, 'label' => 'x', 'created_at' => now(), 'updated_at' => now()],
@@ -339,16 +344,17 @@ class ScopesQueryToOwnedSitesTest extends TestCase
         $this->assertCount(2, OwnedByUserHost::scope(SingleSiteRecord::query())->get());
     }
 
-    public function test_cms_page_resource_filters_to_owned_sites(): void
+    public function test_cms_page_resource_filters_to_the_users_sites(): void
     {
         $this->activateFakeMultisite();
-        $owner = $this->makeUser('owner');
+        $member = $this->makeUser('member');
         $other = $this->makeUser('other');
-        $this->actingAs($owner);
+        $this->actingAs($member);
+        $this->app->instance(SiteAccess::class, new SiteAccessByList([$member->id => [10]]));
 
         DB::table('tallcms_sites')->insert([
-            ['id' => 10, 'user_id' => $owner->id, 'name' => 'Owner Site'],
-            ['id' => 20, 'user_id' => $other->id, 'name' => 'Other Site'],
+            ['id' => 10, 'user_id' => $other->id, 'name' => 'Member Site'],
+            ['id' => 20, 'user_id' => $member->id, 'name' => 'Other Site'],
         ]);
 
         DB::table('tallcms_pages')->insert([

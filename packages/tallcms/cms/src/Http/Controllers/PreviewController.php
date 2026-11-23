@@ -11,7 +11,6 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
-use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Models\CmsPage;
 use TallCms\Cms\Models\CmsPost;
 use TallCms\Cms\Models\CmsPreviewToken;
@@ -150,12 +149,10 @@ class PreviewController extends Controller
     }
 
     /**
-     * Logged-in previews show drafts, so only to users who may see the
-     * record: whoever its policy lets view it (outside a site panel that is
-     * /admin's rule: the owner, the site's owner, a super admin), or whoever
-     * may view that kind of content and may open its site (SiteAccess: the
-     * site panel's users, e.g. team members). Share links (tokenPreview) are
-     * meant for anyone holding the token.
+     * Logged-in previews show drafts, so only to users whose policy lets
+     * them view the record: the permission, and access to the record's site
+     * (SiteAccess). Share links (tokenPreview) are meant for anyone holding
+     * the token.
      */
     protected function ensureSiteAccess(Model $content): void
     {
@@ -163,19 +160,6 @@ class PreviewController extends Controller
 
         abort_unless($user !== null, 404);
 
-        $gate = Gate::forUser($user);
-
-        if ($gate->allows('view', $content)) {
-            return;
-        }
-
-        $site = $content->getAttribute('site_id') !== null ? $content->site : null;
-
-        abort_unless(
-            $site !== null
-                && $gate->allows('View:'.class_basename($content))
-                && app(SiteAccess::class)->canAccess($user, $site),
-            404,
-        );
+        abort_unless(Gate::forUser($user)->allows('view', $content), 404);
     }
 }

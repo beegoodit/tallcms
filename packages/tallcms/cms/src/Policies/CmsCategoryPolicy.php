@@ -21,7 +21,7 @@ class CmsCategoryPolicy
 
     public function view(Authenticatable $user, CmsCategory $cmsCategory): bool
     {
-        return $user->can('View:CmsCategory') && $this->ownsOrSuperAdmin($user, $cmsCategory);
+        return $user->can('View:CmsCategory') && $this->userMayAccessContentSite($user, $cmsCategory->site_id);
     }
 
     public function create(Authenticatable $user): bool
@@ -31,22 +31,22 @@ class CmsCategoryPolicy
 
     public function update(Authenticatable $user, CmsCategory $cmsCategory): bool
     {
-        return $user->can('Update:CmsCategory') && $this->ownsOrSuperAdmin($user, $cmsCategory);
+        return $user->can('Update:CmsCategory') && $this->userMayAccessContentSite($user, $cmsCategory->site_id);
     }
 
     public function delete(Authenticatable $user, CmsCategory $cmsCategory): bool
     {
-        return $user->can('Delete:CmsCategory') && $this->ownsOrSuperAdmin($user, $cmsCategory);
+        return $user->can('Delete:CmsCategory') && $this->userMayAccessContentSite($user, $cmsCategory->site_id);
     }
 
     public function restore(Authenticatable $user, CmsCategory $cmsCategory): bool
     {
-        return $user->can('Restore:CmsCategory') && $this->ownsOrSuperAdmin($user, $cmsCategory);
+        return $user->can('Restore:CmsCategory') && $this->userMayAccessContentSite($user, $cmsCategory->site_id);
     }
 
     public function forceDelete(Authenticatable $user, CmsCategory $cmsCategory): bool
     {
-        return $user->can('ForceDelete:CmsCategory') && $this->ownsOrSuperAdmin($user, $cmsCategory);
+        return $user->can('ForceDelete:CmsCategory') && $this->userMayAccessContentSite($user, $cmsCategory->site_id);
     }
 
     public function forceDeleteAny(Authenticatable $user): bool
@@ -61,29 +61,11 @@ class CmsCategoryPolicy
 
     public function replicate(Authenticatable $user, CmsCategory $cmsCategory): bool
     {
-        return $user->can('Replicate:CmsCategory') && $this->ownsOrSuperAdmin($user, $cmsCategory);
+        return $user->can('Replicate:CmsCategory') && $this->userMayAccessContentSite($user, $cmsCategory->site_id);
     }
 
     public function reorder(Authenticatable $user): bool
     {
         return $user->can('Reorder:CmsCategory');
-    }
-
-    protected function ownsOrSuperAdmin(Authenticatable $user, CmsCategory $cmsCategory): bool
-    {
-        $inTenantSite = $this->recordIsInTenantSite($cmsCategory->site_id === null ? null : (int) $cmsCategory->site_id);
-        if ($inTenantSite !== null) {
-            return $inTenantSite;
-        }
-
-        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
-            return true;
-        }
-
-        if (isset($cmsCategory->user_id) && $cmsCategory->user_id !== null) {
-            return $cmsCategory->user_id === $user->getAuthIdentifier();
-        }
-
-        return true; // No ownership column yet (standalone/pre-migration)
     }
 }

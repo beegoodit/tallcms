@@ -21,7 +21,7 @@ class TallcmsMediaPolicy
 
     public function view(Authenticatable $user, TallcmsMedia $tallcmsMedia): bool
     {
-        return $user->can('View:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $tallcmsMedia);
+        return $user->can('View:TallcmsMedia') && $this->userMayAccessContentSite($user, $tallcmsMedia->site_id);
     }
 
     public function create(Authenticatable $user): bool
@@ -31,22 +31,22 @@ class TallcmsMediaPolicy
 
     public function update(Authenticatable $user, TallcmsMedia $tallcmsMedia): bool
     {
-        return $user->can('Update:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $tallcmsMedia);
+        return $user->can('Update:TallcmsMedia') && $this->userMayAccessContentSite($user, $tallcmsMedia->site_id);
     }
 
     public function delete(Authenticatable $user, TallcmsMedia $tallcmsMedia): bool
     {
-        return $user->can('Delete:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $tallcmsMedia);
+        return $user->can('Delete:TallcmsMedia') && $this->userMayAccessContentSite($user, $tallcmsMedia->site_id);
     }
 
     public function restore(Authenticatable $user, TallcmsMedia $tallcmsMedia): bool
     {
-        return $user->can('Restore:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $tallcmsMedia);
+        return $user->can('Restore:TallcmsMedia') && $this->userMayAccessContentSite($user, $tallcmsMedia->site_id);
     }
 
     public function forceDelete(Authenticatable $user, TallcmsMedia $tallcmsMedia): bool
     {
-        return $user->can('ForceDelete:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $tallcmsMedia);
+        return $user->can('ForceDelete:TallcmsMedia') && $this->userMayAccessContentSite($user, $tallcmsMedia->site_id);
     }
 
     public function forceDeleteAny(Authenticatable $user): bool
@@ -61,29 +61,11 @@ class TallcmsMediaPolicy
 
     public function replicate(Authenticatable $user, TallcmsMedia $tallcmsMedia): bool
     {
-        return $user->can('Replicate:TallcmsMedia') && $this->ownsOrSuperAdmin($user, $tallcmsMedia);
+        return $user->can('Replicate:TallcmsMedia') && $this->userMayAccessContentSite($user, $tallcmsMedia->site_id);
     }
 
     public function reorder(Authenticatable $user): bool
     {
         return $user->can('Reorder:TallcmsMedia');
-    }
-
-    protected function ownsOrSuperAdmin(Authenticatable $user, TallcmsMedia $tallcmsMedia): bool
-    {
-        $inTenantSite = $this->recordIsInTenantSite($tallcmsMedia->site_id === null ? null : (int) $tallcmsMedia->site_id);
-        if ($inTenantSite !== null) {
-            return $inTenantSite;
-        }
-
-        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
-            return true;
-        }
-
-        if (isset($tallcmsMedia->user_id) && $tallcmsMedia->user_id !== null) {
-            return $tallcmsMedia->user_id === $user->getAuthIdentifier();
-        }
-
-        return true; // No ownership column yet (standalone/pre-migration)
     }
 }

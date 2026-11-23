@@ -5,86 +5,47 @@ declare(strict_types=1);
 namespace TallCms\Cms\Policies\Concerns;
 
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use TallCms\Cms\Contracts\SiteAccess;
 use TallCms\Cms\Contracts\SiteContext;
+use TallCms\Cms\Models\Site;
 
 /**
- * Layers site-ownership authorization on top of Shield's role/permission
- * checks. Used by record-scoped methods on policies for site-owned content
- * (CmsPage, TallcmsMenu) in multisite installs.
+ * The site half of a content policy: on top of the permission, the record's
+ * site must be one the user may work in.
  *
  * Rule:
  *   - in a site panel: the record belongs to the tenant (the user's access to
- *     the tenant was checked by SiteAccess when the panel resolved it)
- *   - super_admin bypass
- *   - otherwise, user.id must equal the owning site's user_id
+ *     the tenant was checked by SiteAccess when the panel resolved it);
+ *   - anywhere else (previews, API, tools, jobs): SiteAccess decides for the
+ *     record's site;
+ *   - a record without a site is a super admin's only, so it is surfaced
+ *     rather than silently attached to whoever edits it first.
  *
- * Outside multisite (no `site_id` column on the content table, or the
- * multisite plugin isn't active), ownership doesn't apply and the check
- * passes through — single-site installs retain their pre-multisite behavior.
+ * Who created a record (user_id, author_id) and the user stored on the site
+ * (tallcms_sites.user_id) grant nothing.
  */
 trait ChecksSiteOwnership
 {
     /**
-     * Check whether the user is allowed to act on a record belonging to a
-     * given site. Pass the record's `site_id` directly; caller doesn't need
-     * to load the Site model.
+     * Whether the user may work on a record of the given site. Pass the
+     * record's `site_id`.
      */
-    protected function userOwnsContentSite(Authenticatable $user, ?int $siteId): bool
+    protected function userMayAccessContentSite(Authenticatable $user, int|string|null $siteId): bool
     {
+        $siteId = $siteId === null ? null : (int) $siteId;
         $tenantSiteId = app(SiteContext::class)->tenantSiteId();
 
         if ($tenantSiteId !== null) {
             return $siteId === $tenantSiteId;
         }
 
-        if (! $this->multisiteScopingActive()) {
-            return true;
-        }
-
-        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
-            return true;
-        }
-
         if ($siteId === null) {
-            // Orphaned record — only super-admins (handled above) can touch it.
-            // Owners get denied so the orphan is surfaced rather than silently
-            // attached to the first admin who edits it.
-            return false;
+            return method_exists($user, 'hasRole') && $user->hasRole('super_admin');
         }
 
-        return DB::table('tallcms_sites')
-            ->where('id', $siteId)
-            ->where('user_id', $user->getAuthIdentifier())
-            ->exists();
-    }
+        $siteModel = config('tallcms.sites.model', Site::class);
+        $site = $siteModel::query()->withoutGlobalScopes()->find($siteId);
 
-    /**
-     * In a site panel, whether the record belongs to the tenant; null outside
-     * a site panel. For user-owned content (posts, categories, media,
-     * collections), which is the tenant's in the site panel and the user's
-     * in /admin.
-     */
-    protected function recordIsInTenantSite(?int $siteId): ?bool
-    {
-        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
-
-        return $tenantSiteId === null ? null : $siteId === $tenantSiteId;
-    }
-
-    /**
-     * Whether multisite scoping is actually in play for this install.
-     * Cheaper than loading the full multisite helper: we just need to know
-     * whether `tallcms_sites` exists and whether site_id columns are on the
-     * content tables.
-     */
-    protected function multisiteScopingActive(): bool
-    {
-        try {
-            return Schema::hasTable('tallcms_sites');
-        } catch (\Throwable) {
-            return false;
-        }
+        return $site instanceof Site && app(SiteAccess::class)->canAccess($user, $site);
     }
 }

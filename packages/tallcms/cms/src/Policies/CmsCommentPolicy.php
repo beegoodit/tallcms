@@ -31,7 +31,7 @@ class CmsCommentPolicy
     public function view(Authenticatable $user, CmsComment $cmsComment): bool
     {
         return $user->can('View:CmsComment')
-            && $this->userOwnsContentSite($user, $cmsComment->site_id);
+            && $this->userMayAccessContentSite($user, $cmsComment->site_id);
     }
 
     public function create(Authenticatable $user): bool
@@ -42,25 +42,25 @@ class CmsCommentPolicy
     public function update(Authenticatable $user, CmsComment $cmsComment): bool
     {
         return $user->can('Update:CmsComment')
-            && $this->userOwnsContentSite($user, $cmsComment->site_id);
+            && $this->userMayAccessContentSite($user, $cmsComment->site_id);
     }
 
     public function delete(Authenticatable $user, CmsComment $cmsComment): bool
     {
         return $user->can('Delete:CmsComment')
-            && $this->userOwnsContentSite($user, $cmsComment->site_id);
+            && $this->userMayAccessContentSite($user, $cmsComment->site_id);
     }
 
     public function restore(Authenticatable $user, CmsComment $cmsComment): bool
     {
         return $user->can('Restore:CmsComment')
-            && $this->userOwnsContentSite($user, $cmsComment->site_id);
+            && $this->userMayAccessContentSite($user, $cmsComment->site_id);
     }
 
     public function forceDelete(Authenticatable $user, CmsComment $cmsComment): bool
     {
         return $user->can('ForceDelete:CmsComment')
-            && $this->userOwnsContentSite($user, $cmsComment->site_id);
+            && $this->userMayAccessContentSite($user, $cmsComment->site_id);
     }
 
     public function forceDeleteAny(Authenticatable $user): bool
@@ -76,7 +76,7 @@ class CmsCommentPolicy
     public function replicate(Authenticatable $user, CmsComment $cmsComment): bool
     {
         return $user->can('Replicate:CmsComment')
-            && $this->userOwnsContentSite($user, $cmsComment->site_id);
+            && $this->userMayAccessContentSite($user, $cmsComment->site_id);
     }
 
     public function reorder(Authenticatable $user): bool
@@ -87,18 +87,18 @@ class CmsCommentPolicy
     public function approve(Authenticatable $user, CmsComment $cmsComment): bool
     {
         return $user->can('Approve:CmsComment')
-            && $this->userOwnsContentSite($user, $cmsComment->site_id);
+            && $this->userMayAccessContentSite($user, $cmsComment->site_id);
     }
 
     public function reject(Authenticatable $user, CmsComment $cmsComment): bool
     {
         return $user->can('Reject:CmsComment')
-            && $this->userOwnsContentSite($user, $cmsComment->site_id);
+            && $this->userMayAccessContentSite($user, $cmsComment->site_id);
     }
 
     public function markAsSpam(Authenticatable $user, CmsComment $cmsComment): bool
     {
         return $user->can('MarkAsSpam:CmsComment')
-            && $this->userOwnsContentSite($user, $cmsComment->site_id);
+            && $this->userMayAccessContentSite($user, $cmsComment->site_id);
     }
 }
