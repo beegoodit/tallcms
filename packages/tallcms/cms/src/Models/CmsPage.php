@@ -179,7 +179,7 @@ class CmsPage extends Model implements HasRichContent
                 MenuCache::flush();
             }
 
-            MediaLibraryFileAttachmentProvider::syncAltTextFromContent($page->content);
+            MediaLibraryFileAttachmentProvider::syncAltTextFromContent($page->content, $page->site_id);
         });
 
         static::deleted(fn (): bool => MenuCache::flush());

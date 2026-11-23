@@ -126,10 +126,13 @@ class MediaLibraryFileAttachmentProvider implements FileAttachmentProvider
      *
      * Filament's FileAttachmentProvider contract doesn't pass alt text during upload,
      * so we walk the saved content and update media records with user-provided alt text.
+     * $siteId is the site of the record the content belongs to.
      */
-    public static function syncAltTextFromContent(mixed $content): void
+    public static function syncAltTextFromContent(mixed $content, int|string|null $siteId = null): void
     {
-        if (blank($content)) {
+        // Content names media by id, and whoever writes the content chooses
+        // the ids: only media of the content's own site are touched.
+        if (blank($content) || $siteId === null) {
             return;
         }
 
@@ -149,7 +152,7 @@ class MediaLibraryFileAttachmentProvider implements FileAttachmentProvider
         }
 
         foreach ($updates as $id => $alt) {
-            UserOwnership::scopeToTenant(TallcmsMedia::where('id', $id))->update(['alt_text' => $alt]);
+            TallcmsMedia::withoutGlobalScopes()->where('id', $id)->where('site_id', $siteId)->update(['alt_text' => $alt]);
         }
     }
 

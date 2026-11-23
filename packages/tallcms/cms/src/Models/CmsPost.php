@@ -141,7 +141,7 @@ class CmsPost extends Model implements HasRichContent
         });
 
         static::saved(function ($post) {
-            MediaLibraryFileAttachmentProvider::syncAltTextFromContent($post->content);
+            MediaLibraryFileAttachmentProvider::syncAltTextFromContent($post->content, $post->site_id);
         });
     }
 

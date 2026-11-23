@@ -9,6 +9,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Mockery;
 use TallCms\Cms\Filament\Forms\Components\MediaLibraryFileAttachmentProvider;
 use TallCms\Cms\Jobs\OptimizeMediaJob;
+use TallCms\Cms\Models\Site;
 use TallCms\Cms\Models\TallcmsMedia;
 use TallCms\Cms\Tests\TestCase;
 
@@ -200,7 +201,7 @@ class MediaLibraryFileAttachmentProviderTest extends TestCase
             ],
         ];
 
-        MediaLibraryFileAttachmentProvider::syncAltTextFromContent($content);
+        MediaLibraryFileAttachmentProvider::syncAltTextFromContent($content, $media->site_id);
 
         $this->assertEquals('A beautiful sunset', $media->fresh()->alt_text);
     }
@@ -221,9 +222,34 @@ class MediaLibraryFileAttachmentProviderTest extends TestCase
 
         $html = '<p>Some text</p><img src="http://example.com/test.jpg" alt="User provided alt" data-id="'.$media->id.'">';
 
-        MediaLibraryFileAttachmentProvider::syncAltTextFromContent($html);
+        MediaLibraryFileAttachmentProvider::syncAltTextFromContent($html, $media->site_id);
 
         $this->assertEquals('User provided alt', $media->fresh()->alt_text);
+    }
+
+    public function test_sync_alt_text_leaves_media_of_another_site_alone(): void
+    {
+        Storage::fake('public');
+
+        $media = TallcmsMedia::create([
+            'name' => 'test',
+            'file_name' => 'test.jpg',
+            'mime_type' => 'image/jpeg',
+            'path' => 'cms/test.jpg',
+            'disk' => 'public',
+            'size' => 1024,
+            'alt_text' => 'Theirs',
+        ]);
+        $otherSite = Site::create(['name' => 'Other', 'domain' => 'other.test']);
+        $content = ['type' => 'doc', 'content' => [
+            ['type' => 'image', 'attrs' => ['id' => $media->id, 'alt' => 'Overwritten']],
+        ]];
+
+        // Content of another site, and content without a site, name the id.
+        MediaLibraryFileAttachmentProvider::syncAltTextFromContent($content, $otherSite->id);
+        MediaLibraryFileAttachmentProvider::syncAltTextFromContent($content);
+
+        $this->assertSame('Theirs', $media->fresh()->alt_text);
     }
 
     public function test_sync_alt_text_skips_non_numeric_ids(): void
