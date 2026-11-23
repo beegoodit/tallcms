@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use TallCms\Cms\Contracts\SiteAccess;
+use TallCms\Cms\Contracts\SiteContext;
 use TallCms\Cms\Filament\Concerns\HasSiteTenants;
 use TallCms\Cms\Filament\Pages\MenuItemsManager;
 use TallCms\Cms\Filament\Pages\SiteDashboard;
@@ -19,6 +20,9 @@ use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
 use TallCms\Cms\Filament\Resources\MediaCollection\MediaCollectionResource;
 use TallCms\Cms\Filament\Resources\TallcmsMedia\TallcmsMediaResource;
 use TallCms\Cms\Filament\Resources\TallcmsMenus\TallcmsMenuResource;
+use TallCms\Cms\Filament\Widgets\Concerns\HasMultisiteWidgetContext;
+use TallCms\Cms\Filament\Widgets\ContentHealthWidget;
+use TallCms\Cms\Filament\Widgets\MenuOverviewWidget;
 use TallCms\Cms\Models\Site;
 use TallCms\Cms\SitePanelPlugin;
 use TallCms\Cms\Tests\Fixtures\User;
@@ -43,6 +47,40 @@ class SitePanelTest extends TestCase
         $this->assertContains(SiteDashboard::class, $panel->getPages());
         $this->assertContains(CmsPageResource::class, $panel->getResources());
         $this->assertTrue($panel->hasPlugin('spatie-translatable'));
+        $this->assertContains(ContentHealthWidget::class, $panel->getWidgets());
+        $this->assertContains(MenuOverviewWidget::class, $panel->getWidgets());
+    }
+
+    public function test_dashboard_widgets_are_about_the_panels_site_whatever_the_session_says(): void
+    {
+        $site = Site::create(['name' => 'Tenant', 'domain' => 'tenant.test']);
+        session(['multisite_admin_site_id' => '__all_sites__']);
+
+        $this->app->instance(SiteContext::class, new class($site->id) implements SiteContext
+        {
+            public function __construct(private int $siteId) {}
+
+            public function currentSiteId(): ?int
+            {
+                return $this->siteId;
+            }
+
+            public function tenantSiteId(): ?int
+            {
+                return $this->siteId;
+            }
+        });
+
+        $widget = new class
+        {
+            use HasMultisiteWidgetContext {
+                getMultisiteSiteId as public;
+                isAllSitesSelected as public;
+            }
+        };
+
+        $this->assertSame($site->id, $widget->getMultisiteSiteId());
+        $this->assertFalse($widget->isAllSitesSelected());
     }
 
     public function test_a_host_switches_resources_and_pages_off(): void

@@ -8,8 +8,17 @@ use Filament\Contracts\Plugin as FilamentPlugin;
 use Filament\Panel;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use TallCms\Cms\Filament\Pages\GlobalDefaults;
+use TallCms\Cms\Filament\Pages\MenuItemsManager;
+use TallCms\Cms\Filament\Resources\CmsPages\CmsPageResource;
+use TallCms\Cms\Filament\Resources\SiteResource\SiteResource;
+use TallCms\Cms\Filament\Resources\TallcmsMedia\TallcmsMediaResource;
+use TallCms\Cms\Filament\Resources\Users\UserResource;
+use TallCms\Cms\Filament\Widgets\ContentHealthWidget;
+use TallCms\Cms\Filament\Widgets\DashboardSitePicker;
 use TallCms\Cms\Services\PluginManager;
 use TallCms\Cms\SitePanelPlugin;
+use TallCms\Cms\TallCmsPlugin;
 use TallCms\Cms\Tests\TestCase;
 
 /**
@@ -61,6 +70,45 @@ class SitePanelInstalledPluginsTest extends TestCase
 
         $this->assertContains(PerSiteFilamentPlugin::class, $classes);
         $this->assertContains(InstallationWideFilamentPlugin::class, $classes);
+    }
+
+    public function test_a_panel_without_site_content_gets_the_plugins_that_are_not_per_site(): void
+    {
+        $classes = array_map(fn (FilamentPlugin $plugin): string => $plugin::class, app(PluginManager::class)->getInstallationFilamentPlugins());
+
+        $this->assertContains(InstallationWideFilamentPlugin::class, $classes);
+        $this->assertNotContains(PerSiteFilamentPlugin::class, $classes);
+    }
+
+    public function test_the_cms_plugin_without_site_content_registers_no_content_and_no_per_site_plugin(): void
+    {
+        $panel = Panel::make()->id('core');
+        $plugin = TallCmsPlugin::make()->withoutSiteContent()->withoutShieldPlugin();
+
+        $plugin->register($panel);
+
+        $this->assertNotContains(CmsPageResource::class, $panel->getResources());
+        $this->assertNotContains(TallcmsMediaResource::class, $panel->getResources());
+        $this->assertNotContains(SiteResource::class, $panel->getResources());
+        $this->assertNotContains(MenuItemsManager::class, $panel->getPages());
+        $this->assertNotContains(DashboardSitePicker::class, $panel->getWidgets());
+        $this->assertNotContains(ContentHealthWidget::class, $panel->getWidgets());
+        $this->assertContains(GlobalDefaults::class, $panel->getPages());
+        $this->assertContains(UserResource::class, $panel->getResources());
+        $this->assertTrue($panel->hasPlugin(InstallationWideFilamentPlugin::ID));
+        $this->assertFalse($panel->hasPlugin(PerSiteFilamentPlugin::ID));
+    }
+
+    public function test_the_cms_plugin_as_it_was_still_registers_content_and_every_plugin(): void
+    {
+        $panel = Panel::make()->id('admin');
+
+        TallCmsPlugin::make()->withoutShieldPlugin()->register($panel);
+
+        $this->assertContains(CmsPageResource::class, $panel->getResources());
+        $this->assertContains(DashboardSitePicker::class, $panel->getWidgets());
+        $this->assertTrue($panel->hasPlugin(InstallationWideFilamentPlugin::ID));
+        $this->assertTrue($panel->hasPlugin(PerSiteFilamentPlugin::ID));
     }
 
     public function test_a_per_site_plugin_whose_class_is_missing_is_logged_and_left_out(): void

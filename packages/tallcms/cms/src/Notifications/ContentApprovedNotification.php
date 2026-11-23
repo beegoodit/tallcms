@@ -150,17 +150,14 @@ class ContentApprovedNotification extends Notification
             return $sitePanelUrl;
         }
 
-        $panelId = config('tallcms.filament.panel_id', 'admin');
+        // The configured panel, where it holds content; else its start page.
+        $url = match (true) {
+            $this->content instanceof CmsPost => tallcms_panel_route_if_exists('resources.cms-posts.edit', $this->content),
+            $this->content instanceof CmsPage => tallcms_panel_route_if_exists('resources.cms-pages.edit', $this->content),
+            default => null,
+        };
 
-        if ($this->content instanceof CmsPost) {
-            return route("filament.{$panelId}.resources.cms-posts.edit", $this->content);
-        }
-
-        if ($this->content instanceof CmsPage) {
-            return route("filament.{$panelId}.resources.cms-pages.edit", $this->content);
-        }
-
-        return tallcms_panel_url();
+        return $url ?? tallcms_panel_url();
     }
 
     /**

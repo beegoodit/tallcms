@@ -101,6 +101,25 @@ if (! function_exists('tallcms_panel_route')) {
     }
 }
 
+if (! function_exists('tallcms_panel_route_if_exists')) {
+    /**
+     * Like tallcms_panel_route(), or null when the configured panel has no
+     * such route: a host may keep site content out of that panel (it lives
+     * in the site panel then), and a link built outside any panel must not
+     * fail for it.
+     *
+     * @param  string  $suffix  The route suffix (e.g., 'resources.cms-pages.edit')
+     * @param  mixed  $parameters  Optional route parameters
+     */
+    function tallcms_panel_route_if_exists(string $suffix, mixed $parameters = []): ?string
+    {
+        $panelId = config('tallcms.filament.panel_id', 'admin');
+        $name = "filament.{$panelId}.{$suffix}";
+
+        return \Illuminate\Support\Facades\Route::has($name) ? route($name, $parameters) : null;
+    }
+}
+
 // Theme Helper Functions
 
 if (! function_exists('theme')) {

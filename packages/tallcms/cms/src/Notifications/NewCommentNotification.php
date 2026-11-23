@@ -68,8 +68,7 @@ class NewCommentNotification extends Notification
             return $sitePanelUrl;
         }
 
-        $panelId = config('tallcms.filament.panel_id', 'admin');
-
-        return route("filament.{$panelId}.resources.cms-comments.view", $this->comment);
+        // The configured panel, where it holds content; else its start page.
+        return tallcms_panel_route_if_exists('resources.cms-comments.view', $this->comment) ?? tallcms_panel_url();
     }
 }

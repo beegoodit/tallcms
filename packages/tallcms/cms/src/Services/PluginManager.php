@@ -483,6 +483,22 @@ class PluginManager
     }
 
     /**
+     * Filament plugin instances of the installed plugins that are not per
+     * site: what a panel for the installation gets when the per-site plugins
+     * live in the site panel.
+     *
+     * @return array<\Filament\Contracts\Plugin>
+     */
+    public function getInstallationFilamentPlugins(): array
+    {
+        return $this->instantiateFilamentPlugins(
+            $this->getInstalledPlugins()->filter(
+                fn (Plugin $plugin): bool => $plugin->hasFilamentPlugin() && ! $plugin->worksInSitePanel()
+            )
+        );
+    }
+
+    /**
      * A plugin whose class is missing or cannot be built is logged and left
      * out, so one broken plugin does not take the panel down.
      *

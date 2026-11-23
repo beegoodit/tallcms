@@ -59,6 +59,10 @@ class TallCmsPlugin implements Plugin
     /** @var array<string, array{singular?: string, plural?: string, navigation?: string}> */
     protected array $labelOverrides = [];
 
+    protected bool $hasSitePicker = true;
+
+    protected bool $hasPerSitePlugins = true;
+
     public static function make(): static
     {
         return app(static::class);
@@ -120,7 +124,9 @@ class TallCmsPlugin implements Plugin
 
         try {
             $pluginManager = app(Services\PluginManager::class);
-            $filamentPlugins = $pluginManager->getFilamentPlugins();
+            $filamentPlugins = $this->hasPerSitePlugins
+                ? $pluginManager->getFilamentPlugins()
+                : $pluginManager->getInstallationFilamentPlugins();
 
             foreach ($filamentPlugins as $filamentPlugin) {
                 $panel->plugin($filamentPlugin);
@@ -258,7 +264,7 @@ class TallCmsPlugin implements Plugin
         // multisite plugin presence + user-accessible sites with try/catch
         // so install / migration / DB-unavailable contexts can't blow up
         // panel boot.
-        $widgets = [DashboardSitePicker::class];
+        $widgets = $this->hasSitePicker ? [DashboardSitePicker::class] : [];
 
         if ($this->hasPosts) {
             $widgets[] = ContentHealthWidget::class;
@@ -331,6 +337,29 @@ class TallCmsPlugin implements Plugin
      * Use this if your app already has a UserResource
      * or you want to manage users differently.
      */
+    /**
+     * For a panel that manages the installation while each site's content
+     * lives in its site panel (SitePanelPlugin): no content resources, no
+     * site picker, and of the installed plugins only those that are not
+     * marked as per-site (plugin.json "site_panel": true puts a plugin into
+     * the site panel instead).
+     */
+    public function withoutSiteContent(): static
+    {
+        $this->hasSitePicker = false;
+        $this->hasPerSitePlugins = false;
+
+        return $this
+            ->withoutCategories()
+            ->withoutPages()
+            ->withoutPosts()
+            ->withoutComments()
+            ->withoutContactSubmissions()
+            ->withoutMedia()
+            ->withoutMenus()
+            ->withoutSiteSettings();
+    }
+
     public function withoutUsers(): static
     {
         $this->hasUsers = false;

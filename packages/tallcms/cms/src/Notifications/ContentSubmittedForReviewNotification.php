@@ -146,14 +146,12 @@ class ContentSubmittedForReviewNotification extends Notification
             return $sitePanelUrl;
         }
 
-        $panelId = config('tallcms.filament.panel_id', 'admin');
-        $url = null;
-
-        if ($this->content instanceof CmsPost) {
-            $url = route("filament.{$panelId}.resources.cms-posts.edit", $this->content);
-        } elseif ($this->content instanceof CmsPage) {
-            $url = route("filament.{$panelId}.resources.cms-pages.edit", $this->content);
-        }
+        // The configured panel, where it holds content; else its start page.
+        $url = match (true) {
+            $this->content instanceof CmsPost => tallcms_panel_route_if_exists('resources.cms-posts.edit', $this->content),
+            $this->content instanceof CmsPage => tallcms_panel_route_if_exists('resources.cms-pages.edit', $this->content),
+            default => null,
+        };
 
         if (! $url) {
             return tallcms_panel_url();

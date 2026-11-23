@@ -36,6 +36,7 @@ class SiteDashboard extends Dashboard
                     'frontendUrl' => $this->site() ? app(SitePanelUrls::class)->frontend($this->site()) : null,
                     'renderHook' => self::RENDER_HOOK,
                 ]),
+            $this->getWidgetsContentComponent(),
         ]);
     }
 

@@ -6,12 +6,14 @@ namespace TallCms\Cms\Filament\Widgets\Concerns;
 
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use TallCms\Cms\Contracts\SiteContext;
 
 /**
  * Multisite scoping helpers for dashboard widgets.
  *
- * Reads the dashboard's "current site" from session('multisite_admin_site_id'),
- * with role-based fallback when the session isn't set yet.
+ * In a site panel the site is the panel's tenant. Elsewhere it is read from
+ * session('multisite_admin_site_id'), with role-based fallback when the
+ * session isn't set yet.
  *
  * Session value semantics:
  *   - '__all_sites__'    → null (caller's signal to skip the site filter)
@@ -27,6 +29,13 @@ trait HasMultisiteWidgetContext
 {
     protected function getMultisiteSiteId(): ?int
     {
+        // In a site panel the widget is about that site, whatever the session says.
+        $tenantSiteId = app(SiteContext::class)->tenantSiteId();
+
+        if ($tenantSiteId !== null) {
+            return $tenantSiteId;
+        }
+
         $sessionValue = session('multisite_admin_site_id');
 
         if ($sessionValue === '__all_sites__') {
@@ -60,7 +69,7 @@ trait HasMultisiteWidgetContext
     {
         $sessionValue = session('multisite_admin_site_id');
 
-        if ($sessionValue === '__all_sites__') {
+        if ($sessionValue === '__all_sites__' && app(SiteContext::class)->tenantSiteId() === null) {
             return __('tallcms::widgets.all_sites');
         }
 
@@ -79,6 +88,7 @@ trait HasMultisiteWidgetContext
 
     protected function isAllSitesSelected(): bool
     {
-        return session('multisite_admin_site_id') === '__all_sites__';
+        return app(SiteContext::class)->tenantSiteId() === null
+            && session('multisite_admin_site_id') === '__all_sites__';
     }
 }

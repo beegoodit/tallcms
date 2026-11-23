@@ -21,6 +21,8 @@ use TallCms\Cms\Filament\Resources\MediaCollection\MediaCollectionResource;
 use TallCms\Cms\Filament\Resources\TallcmsContactSubmissions\TallcmsContactSubmissionResource;
 use TallCms\Cms\Filament\Resources\TallcmsMedia\TallcmsMediaResource;
 use TallCms\Cms\Filament\Resources\TallcmsMenus\TallcmsMenuResource;
+use TallCms\Cms\Filament\Widgets\ContentHealthWidget;
+use TallCms\Cms\Filament\Widgets\MenuOverviewWidget;
 use TallCms\Cms\Models\Site;
 use TallCms\Cms\Services\PluginManager;
 
@@ -75,7 +77,8 @@ class SitePanelPlugin implements Plugin
         $panel
             ->tenant(config('tallcms.sites.model', Site::class), slugAttribute: 'uuid')
             ->pages($this->getPages())
-            ->resources($this->getResources());
+            ->resources($this->getResources())
+            ->widgets($this->getWidgets());
 
         $this->registerTranslatablePlugin($panel);
         $this->registerInstalledPlugins($panel);
@@ -161,6 +164,26 @@ class SitePanelPlugin implements Plugin
         }
 
         return $resources;
+    }
+
+    /**
+     * What the site's dashboard shows about its content.
+     *
+     * @return array<class-string>
+     */
+    public function getWidgets(): array
+    {
+        $widgets = [];
+
+        if ($this->hasPosts) {
+            $widgets[] = ContentHealthWidget::class;
+        }
+
+        if ($this->hasMenus) {
+            $widgets[] = MenuOverviewWidget::class;
+        }
+
+        return $widgets;
     }
 
     public function boot(Panel $panel): void
