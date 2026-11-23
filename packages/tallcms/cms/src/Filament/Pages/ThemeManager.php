@@ -5,6 +5,7 @@ namespace TallCms\Cms\Filament\Pages;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -27,6 +28,7 @@ use TallCms\Cms\Services\SiteSettingsService;
 use TallCms\Cms\Services\SiteThemeActivator;
 use TallCms\Cms\Services\ThemeManager as ThemeManagerService;
 use TallCms\Cms\Services\ThemeValidator;
+use TallCms\Cms\TallCmsPlugin;
 
 class ThemeManager extends Page implements HasForms
 {
@@ -299,6 +301,12 @@ class ThemeManager extends Page implements HasForms
      */
     protected function resolveMultisiteContext(): ?object
     {
+        // A panel that leaves the sites' content to the site panel manages the
+        // installation's themes only; a site's theme is chosen in its panel.
+        if (! $this->panelHoldsSiteContent()) {
+            return null;
+        }
+
         $sessionValue = session('multisite_admin_site_id');
 
         // Explicit "All Sites" selection
@@ -350,7 +358,7 @@ class ThemeManager extends Page implements HasForms
     public function manageableSites(): array
     {
         $user = auth()->user();
-        if (! $user) {
+        if (! $user || ! $this->panelHoldsSiteContent()) {
             return [];
         }
 
@@ -373,6 +381,21 @@ class ThemeManager extends Page implements HasForms
     }
 
     /**
+     * Whether the panel this page is on holds the sites' content. False for
+     * a panel whose TallCmsPlugin was set up withoutSiteContent().
+     */
+    protected function panelHoldsSiteContent(): bool
+    {
+        $panel = Filament::getCurrentPanel();
+
+        if ($panel === null || ! $panel->hasPlugin(app(TallCmsPlugin::class)->getId())) {
+            return true;
+        }
+
+        return $panel->getPlugin(app(TallCmsPlugin::class)->getId())->holdsSiteContent();
+    }
+
+    /**
      * Set the current session's multisite context to the given site.
      *
      * Wired to the site-switcher dropdown on the Theme Manager page. Validates
@@ -382,6 +405,10 @@ class ThemeManager extends Page implements HasForms
      */
     public function switchSite(?string $siteId): void
     {
+        if (! $this->panelHoldsSiteContent()) {
+            return;
+        }
+
         $siteId = $siteId !== null && $siteId !== '' ? (int) $siteId : null;
         $user = auth()->user();
 

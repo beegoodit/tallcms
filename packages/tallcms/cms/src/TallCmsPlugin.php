@@ -360,6 +360,16 @@ class TallCmsPlugin implements Plugin
             ->withoutSiteSettings();
     }
 
+    /**
+     * Whether this panel holds the sites' content (the default), as opposed
+     * to leaving it to the site panel (withoutSiteContent()). Pages that can
+     * work on one site ask this before offering to pick one.
+     */
+    public function holdsSiteContent(): bool
+    {
+        return $this->hasSitePicker;
+    }
+
     public function withoutUsers(): static
     {
         $this->hasUsers = false;
