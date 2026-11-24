@@ -3,6 +3,7 @@
 namespace TallCms\Cms\Console\Commands;
 
 use Illuminate\Console\Command;
+use TallCms\Cms\Events\SetupAssignedSuperAdmin;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -233,6 +234,7 @@ class TallCmsSetup extends Command
 
             if ($makeAdmin) {
                 $existingUser->assignRole('super_admin');
+                SetupAssignedSuperAdmin::dispatch($existingUser);
                 $this->info("{$existingUser->email} is now a super admin!");
 
                 return;
@@ -323,6 +325,7 @@ class TallCmsSetup extends Command
 
         // Assign super admin role
         $user->assignRole('super_admin');
+        SetupAssignedSuperAdmin::dispatch($user);
 
         $this->info("Super admin user created: {$email}");
     }
